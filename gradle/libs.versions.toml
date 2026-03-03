@@ -1,0 +1,11 @@
+[versions]
+ktlint = "1.8.0"
+detekt = "1.23.8"
+emailverifier = "1.0.0"
+
+[libraries]
+emailverifier-kt = { module = "io.github.mbalatsko:emailverifier-kt", version.ref = "emailverifier" }
+
+[plugins]
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version = "12.0.3" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }

@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: MovieNight
+
+services:
+  user:
+    blocked-names:
+      - admin
+      - root
+      - system
+  film:
+    blocked-patterns:
+      - censored
+      - epstein
+      - python

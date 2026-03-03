@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=https://json.schemastore.org/detekt-1.22.0.json
+
+comments:
+  UndocumentedPublicClass:
+    active: false
+  UndocumentedPublicFunction:
+    active: false
+  UndocumentedPublicProperty:
+    active: false

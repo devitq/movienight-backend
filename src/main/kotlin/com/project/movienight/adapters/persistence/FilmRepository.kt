@@ -3,22 +3,23 @@ package com.project.movienight.adapters.persistence
 import com.project.movienight.domain.model.Film
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
-import java.util.UUID
+import java.time.LocalDate
 
 @Repository
 class FilmRepository(private val jdbc: JdbcTemplate) {
 
-    fun findById(id: UUID): Film? =
+    fun findById(id: Int): Film? =
         jdbc.queryForObject(
             "SELECT * FROM films WHERE id = ?",
             { rs, _ ->
                 Film(
-                    id = UUID.fromString(rs.getString("id")),
+                    id = rs.getInt("id"),
                     title = rs.getString("title"),
-                    description = rs.getString("description"),
+                    genreId = rs.getInt("genre_id"),
+                    issueDate = rs.getDate("issue_date")?.toLocalDate(),
                 )
             },
-            id.toString()
+            id
         )
 
     fun findAll(): List<Film> =
@@ -26,9 +27,10 @@ class FilmRepository(private val jdbc: JdbcTemplate) {
             "SELECT * FROM films"
         ) { rs, _ ->
             Film(
-                id = UUID.fromString(rs.getString("id")),
+                id = rs.getInt("id"),
                 title = rs.getString("title"),
-                description = rs.getString("description"),
+                genreId = rs.getInt("genre_id"),
+                issueDate = rs.getDate("issue_date")?.toLocalDate(),
             )
         }
 
@@ -37,9 +39,10 @@ class FilmRepository(private val jdbc: JdbcTemplate) {
             "SELECT * FROM films ORDER BY $sortBy LIMIT ?",
             { rs, _ ->
                 Film(
-                    id = UUID.fromString(rs.getString("id")),
+                    id = rs.getInt("id"),
                     title = rs.getString("title"),
-                    description = rs.getString("description"),
+                    genreId = rs.getInt("genre_id"),
+                    issueDate = rs.getDate("issue_date")?.toLocalDate(),
                 )
             },
             limit
@@ -48,20 +51,20 @@ class FilmRepository(private val jdbc: JdbcTemplate) {
     fun save(film: Film) {
         jdbc.update(
             """
-            INSERT INTO films (id, title, description)
+            INSERT INTO films (title, genre_id, issue_date)
             VALUES (?, ?, ?)
             ON CONFLICT (id) DO UPDATE
-            SET title = ?, description = ?
+            SET title = ?, genre_id = ?, issue_date = ?
             """,
-            film.id.toString(), film.title, film.description,
-            film.title, film.description
+            film.title, film.genreId, film.issueDate,
+            film.title, film.genreId, film.issueDate
         )
     }
 
-    fun deleteById(id: UUID) {
+    fun deleteById(id: Int) {
         jdbc.update(
             "DELETE FROM films WHERE id = ?",
-            id.toString()
+            id
         )
     }
 }

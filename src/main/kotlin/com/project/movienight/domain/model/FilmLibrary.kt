@@ -1,8 +1,9 @@
 package com.project.movienight.domain.model
 
-import java.util.UUID
-
 data class FilmLibrary(
-    val id: UUID,
-    val userId: UUID,
+    val id: Int,
+    val userId: Int,
+    val filmId: Int,
+    val comment: String?,
+    val isViewed: Boolean,
 )

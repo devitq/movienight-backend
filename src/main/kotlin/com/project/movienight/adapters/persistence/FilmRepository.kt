@@ -4,6 +4,7 @@ import com.project.movienight.domain.model.Film
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
 import java.time.LocalDate
+import java.util.UUID
 
 @Repository
 class FilmRepository(private val jdbc: JdbcTemplate) {
@@ -13,10 +14,9 @@ class FilmRepository(private val jdbc: JdbcTemplate) {
             "SELECT * FROM films WHERE id = ?",
             { rs, _ ->
                 Film(
-                    id = rs.getInt("id"),
+                    id = UUID.fromString(rs.getString("id")),
                     title = rs.getString("title"),
-                    genreId = rs.getInt("genre_id"),
-                    issueDate = rs.getDate("issue_date")?.toLocalDate(),
+                    description = rs.getString("description"),
                 )
             },
             id
@@ -27,10 +27,9 @@ class FilmRepository(private val jdbc: JdbcTemplate) {
             "SELECT * FROM films"
         ) { rs, _ ->
             Film(
-                id = rs.getInt("id"),
+                id = UUID.fromString(rs.getString("id")),
                 title = rs.getString("title"),
-                genreId = rs.getInt("genre_id"),
-                issueDate = rs.getDate("issue_date")?.toLocalDate(),
+                description = rs.getString("description"),
             )
         }
 
@@ -39,10 +38,9 @@ class FilmRepository(private val jdbc: JdbcTemplate) {
             "SELECT * FROM films ORDER BY $sortBy LIMIT ?",
             { rs, _ ->
                 Film(
-                    id = rs.getInt("id"),
+                    id = UUID.fromString(rs.getString("id")),
                     title = rs.getString("title"),
-                    genreId = rs.getInt("genre_id"),
-                    issueDate = rs.getDate("issue_date")?.toLocalDate(),
+                    description = rs.getString("description"),
                 )
             },
             limit
@@ -56,8 +54,8 @@ class FilmRepository(private val jdbc: JdbcTemplate) {
             ON CONFLICT (id) DO UPDATE
             SET title = ?, genre_id = ?, issue_date = ?
             """,
-            film.title, film.genreId, film.issueDate,
-            film.title, film.genreId, film.issueDate
+            film.title,
+            film.title,
         )
     }
 

@@ -54,7 +54,13 @@ class MovieNightService(
         println(filmStarWars)
 
         println("Редактирование фильма ${filmSpiderMan.title}")
-        filmSpiderMan = filmService.edit(filmSpiderMan.id, EditFilmCommand("Delayed", "-"))
+        filmSpiderMan = filmService.edit(
+            id = filmSpiderMan.id,  // ID имеет тип UUID
+            command = EditFilmCommand(
+                title = "Delayed",
+                description = "-"
+            )
+        )
         println(filmSpiderMan)
 
         println("Редактирование пользователя ${userAboba.name}")

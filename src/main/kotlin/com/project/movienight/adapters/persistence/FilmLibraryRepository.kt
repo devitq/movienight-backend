@@ -3,6 +3,7 @@ package com.project.movienight.adapters.persistence
 import com.project.movienight.domain.model.FilmLibrary
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
+import java.util.UUID
 
 @Repository
 class FilmLibraryRepository(private val jdbc: JdbcTemplate) {
@@ -12,9 +13,9 @@ class FilmLibraryRepository(private val jdbc: JdbcTemplate) {
             "SELECT * FROM favorites WHERE id = ?",
             { rs, _ ->
                 FilmLibrary(
-                    id = rs.getInt("id"),
-                    userId = rs.getInt("userid"),
-                    filmId = rs.getInt("film_id"),
+                    id = UUID.fromString(rs.getString("id")),
+                    userId = UUID.fromString(rs.getString("userid")),
+                    filmId = UUID.fromString(rs.getString("film_id")),
                     comment = rs.getString("comment"),
                     isViewed = rs.getBoolean("is_viewed"),
                 )
@@ -27,9 +28,9 @@ class FilmLibraryRepository(private val jdbc: JdbcTemplate) {
             "SELECT * FROM favorites WHERE userid = ?",
             { rs, _ ->
                 FilmLibrary(
-                    id = rs.getInt("id"),
-                    userId = rs.getInt("userid"),
-                    filmId = rs.getInt("film_id"),
+                    id = UUID.fromString(rs.getString("id")),
+                    userId = UUID.fromString(rs.getString("userid")),
+                    filmId = UUID.fromString(rs.getString("film_id")),
                     comment = rs.getString("comment"),
                     isViewed = rs.getBoolean("is_viewed"),
                 )
@@ -42,9 +43,9 @@ class FilmLibraryRepository(private val jdbc: JdbcTemplate) {
             "SELECT * FROM favorites"
         ) { rs, _ ->
             FilmLibrary(
-                id = rs.getInt("id"),
-                userId = rs.getInt("userid"),
-                filmId = rs.getInt("film_id"),
+                id = UUID.fromString(rs.getString("id")),
+                userId = UUID.fromString(rs.getString("userid")),
+                filmId = UUID.fromString(rs.getString("film_id")),
                 comment = rs.getString("comment"),
                 isViewed = rs.getBoolean("is_viewed"),
             )
@@ -55,9 +56,9 @@ class FilmLibraryRepository(private val jdbc: JdbcTemplate) {
             "SELECT * FROM favorites ORDER BY $sortBy LIMIT ?",
             { rs, _ ->
                 FilmLibrary(
-                    id = rs.getInt("id"),
-                    userId = rs.getInt("userid"),
-                    filmId = rs.getInt("film_id"),
+                    id = UUID.fromString(rs.getString("id")),
+                    userId = UUID.fromString(rs.getString("userid")),
+                    filmId = UUID.fromString(rs.getString("film_id")),
                     comment = rs.getString("comment"),
                     isViewed = rs.getBoolean("is_viewed"),
                 )

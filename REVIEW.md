@@ -40,7 +40,7 @@
 - `src/main/kotlin/com/project/movienight/adapters/web/UserController.kt:49-56`
 - `src/main/kotlin/com/project/movienight/adapters/web/FilmLibraryController.kt:70-72`
 
-Сейчас DTO-классы (`CreateFilmRequest`, `EditFilmRequest`, `CreateUserRequest`, `EditUserRequest`, `CreateFilmLibraryRequest`) объявлены прямо в файлах контроллеров. Пока их по 1-2 на файл — это терпимо. Но как только добавятся новые endpoint'ы, валидация и Response-DTO — контроллер будет не читаем.
+Сейчас DTO-классы (`CreateFilmRequest`, `EditFilmRequest`, `CreateUserRequest`, `EditUserRequest`, `CreateFilmLibraryRequest`) объявлены прямо в файлах контроллеров. Пока их по 1-2 на файл — это терпимо. Но как только добавятся новые endpoint'ы, валидация и Response-DTO — контроллер будет нечитаем.
 
 Я могу предложить такую структуру:
 

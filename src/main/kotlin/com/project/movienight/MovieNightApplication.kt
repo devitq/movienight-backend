@@ -8,6 +8,6 @@ import org.springframework.boot.runApplication
 @ConfigurationPropertiesScan("com.project.movienight.config")
 class MovieNightApplication
 
-fun main(args: Array<String>) {
-    runApplication<MovieNightApplication>(*args)
+fun main() {
+    runApplication<MovieNightApplication>()
 }

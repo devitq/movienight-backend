@@ -140,6 +140,19 @@ tasks.named<Jar>("jar") {
     enabled = false
 }
 
+ktlint {
+    version.set(libs.versions.ktlint.get())
+    debug.set(false)
+    verbose.set(true)
+    android.set(false)
+    outputToConsole.set(true)
+    ignoreFailures.set(false)
+    enableExperimentalRules.set(true)
+    filter {
+        exclude("**/build/**")
+        exclude("**/generated/**")
+    }
+}
 
 
 
@@ -191,6 +204,7 @@ tasks.jacocoTestCoverageVerification {
 }
 
 tasks.check {
+    dependsOn(tasks.ktlintCheck)
     // dependsOn(tasks.detekt)
     dependsOn(tasks.jacocoTestReport)
 }

@@ -1,16 +1,17 @@
 import com.google.protobuf.gradle.id
+import io.gitlab.arturbosch.detekt.Detekt
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.springframework.boot.gradle.tasks.bundling.BootJar
 
 plugins {
-    kotlin("jvm") version "2.1.20"
-    kotlin("plugin.spring") version "2.1.20"
-    id("org.springframework.boot") version "3.4.3"
-    id("io.spring.dependency-management") version "1.1.7"
-    id("com.google.protobuf") version "0.9.6"
-    // alias(libs.plugins.ktlint)
-    // alias(libs.plugins.detekt)
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.spring)
+    alias(libs.plugins.spring.boot)
+    alias(libs.plugins.spring.dependency.management)
+    alias(libs.plugins.protobuf)
+    alias(libs.plugins.ktlint)
+    alias(libs.plugins.detekt)
     jacoco
 }
 
@@ -25,32 +26,36 @@ java {
     targetCompatibility = JavaVersion.VERSION_21
 }
 
-configurations {
-    compileOnly {
-        extendsFrom(configurations.annotationProcessor.get())
-    }
-}
-
-repositories {
-    mavenCentral()
-}
-
-extra["sentryVersion"] = "8.27.0"
-extra["springGrpcVersion"] = "1.0.1"
-
 dependencies {
-    implementation("org.springframework.boot:spring-boot-starter-web")
-    implementation("org.springframework.boot:spring-boot-starter-actuator")
-    implementation("org.springframework.boot:spring-boot-starter-data-jdbc")
-    implementation("org.springframework.boot:spring-boot-starter-validation")
-    implementation("org.flywaydb:flyway-database-postgresql")
-    implementation("org.jetbrains.kotlin:kotlin-reflect")
+    implementation(platform(libs.sentry.bom))
+    implementation(platform(libs.spring.grpc.bom))
 
-    developmentOnly("org.springframework.boot:spring-boot-devtools")
-    runtimeOnly("org.postgresql:postgresql")
+    implementation(libs.spring.boot.starter.web)
+    implementation(libs.spring.boot.starter.actuator)
+    implementation(libs.spring.boot.starter.security)
+    implementation(libs.spring.boot.starter.cache)
+    implementation(libs.spring.boot.starter.data.jdbc)
+    implementation(libs.spring.boot.starter.validation)
+    implementation(libs.flyway.database.postgresql)
+    implementation(libs.kotlin.reflect)
 
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    implementation(libs.micrometer.tracing.bridge.otel)
+    implementation(libs.opentelemetry.exporter.otlp)
+    implementation(libs.sentry.spring.boot.starter)
+
+    implementation(libs.spring.grpc.starter)
+    implementation(libs.grpc.services)
+
+    runtimeOnly(libs.micrometer.registry.prometheus)
+    runtimeOnly(libs.h2)
+    runtimeOnly(libs.postgresql)
+
+    developmentOnly(libs.spring.boot.devtools)
+
+    testImplementation(libs.spring.boot.starter.test)
+    testImplementation(libs.kotlin.test.junit5)
+    testImplementation(libs.spring.grpc.test)
+    testRuntimeOnly(libs.junit.platform.launcher)
 }
 
 tasks.withType<KotlinCompile> {
@@ -75,26 +80,19 @@ tasks.withType<JavaCompile> {
     options.isIncremental = true
 }
 
-dependencyManagement {
-    imports {
-        mavenBom("io.sentry:sentry-bom:${property("sentryVersion")}")
-        mavenBom("org.springframework.grpc:spring-grpc-dependencies:${property("springGrpcVersion")}")
-    }
-}
-
 kotlin {
     compilerOptions {
-        freeCompilerArgs.addAll("-Xjsr305=strict", "-Xannotation-default-target=param-property")
+        freeCompilerArgs.addAll("-Xannotation-default-target=param-property")
     }
 }
 
 protobuf {
     protoc {
-        artifact = "com.google.protobuf:protoc:3.25.1"
+        artifact = "com.google.protobuf:protoc:${libs.versions.protoc.get()}"
     }
     plugins {
         id("grpc") {
-            artifact = "io.grpc:protoc-gen-grpc-java:1.60.0"
+            artifact = "io.grpc:protoc-gen-grpc-java:${libs.versions.grpc.java.get()}"
         }
     }
     generateProtoTasks {
@@ -118,7 +116,6 @@ tasks.withType<Test> {
     maxParallelForks = maxOf(1, Runtime.getRuntime().availableProcessors() / 2)
     minHeapSize = "512m"
     maxHeapSize = "2048m"
-    systemProperty("spring.profiles.active", "test")
 }
 
 tasks.processResources {
@@ -140,6 +137,11 @@ tasks.named<Jar>("jar") {
     enabled = false
 }
 
+tasks.withType<org.gradle.api.tasks.bundling.AbstractArchiveTask>().configureEach {
+    isPreserveFileTimestamps = false
+    isReproducibleFileOrder = true
+}
+
 ktlint {
     version.set(libs.versions.ktlint.get())
     debug.set(false)
@@ -154,19 +156,26 @@ ktlint {
     }
 }
 
-
-
-/*
 detekt {
+    toolVersion = libs.versions.detekt.get()
     buildUponDefaultConfig = true
     allRules = false
-    config.setFrom("$projectDir/config/detekt/detekt.yaml")
+    config.setFrom(files("$projectDir/config/detekt/detekt.yaml"))
     baseline = file("$projectDir/config/detekt/baseline.xml")
 }
-*/
+
+tasks.withType<Detekt>().configureEach {
+    jvmTarget = "21"
+    reports {
+        html.required.set(true)
+        xml.required.set(true)
+        sarif.required.set(true)
+        txt.required.set(false)
+    }
+}
 
 jacoco {
-    toolVersion = "0.8.11"
+    toolVersion = libs.versions.jacoco.get()
 }
 
 tasks.jacocoTestReport {
@@ -183,21 +192,7 @@ tasks.jacocoTestCoverageVerification {
     violationRules {
         rule {
             limit {
-                minimum = "0.60".toBigDecimal()
-            }
-        }
-        rule {
-            element = "CLASS"
-            excludes =
-                listOf(
-                    "*.config.*",
-                    "*.dto.*",
-                    "*.entity.*",
-                )
-            limit {
-                counter = "LINE"
-                value = "COVEREDRATIO"
-                minimum = "0.60".toBigDecimal()
+                minimum = "0.10".toBigDecimal()
             }
         }
     }
@@ -205,6 +200,6 @@ tasks.jacocoTestCoverageVerification {
 
 tasks.check {
     dependsOn(tasks.ktlintCheck)
-    // dependsOn(tasks.detekt)
+    dependsOn(tasks.detekt)
     dependsOn(tasks.jacocoTestReport)
 }

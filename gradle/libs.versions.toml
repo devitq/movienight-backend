@@ -1,11 +1,51 @@
 [versions]
+kotlin = "2.0.21"
+spring-boot = "3.4.3"
+spring-dependency-management = "1.1.7"
+protobuf-plugin = "0.9.6"
 ktlint = "1.8.0"
 detekt = "1.23.8"
-emailverifier = "1.0.0"
+jacoco = "0.8.11"
+sentry = "8.27.0"
+spring-grpc = "1.0.1"
+protoc = "3.25.1"
+grpc-java = "1.60.0"
 
 [libraries]
-emailverifier-kt = { module = "io.github.mbalatsko:emailverifier-kt", version.ref = "emailverifier" }
+spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web" }
+spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
+spring-boot-starter-security = { module = "org.springframework.boot:spring-boot-starter-security" }
+spring-boot-starter-cache = { module = "org.springframework.boot:spring-boot-starter-cache" }
+spring-boot-starter-data-jdbc = { module = "org.springframework.boot:spring-boot-starter-data-jdbc" }
+spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation" }
+spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
+spring-boot-devtools = { module = "org.springframework.boot:spring-boot-devtools" }
+
+micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
+micrometer-tracing-bridge-otel = { module = "io.micrometer:micrometer-tracing-bridge-otel" }
+opentelemetry-exporter-otlp = { module = "io.opentelemetry:opentelemetry-exporter-otlp" }
+
+postgresql = { module = "org.postgresql:postgresql" }
+h2 = { module = "com.h2database:h2" }
+flyway-database-postgresql = { module = "org.flywaydb:flyway-database-postgresql" }
+kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect" }
+kotlin-test-junit5 = { module = "org.jetbrains.kotlin:kotlin-test-junit5" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+
+sentry-bom = { module = "io.sentry:sentry-bom", version.ref = "sentry" }
+sentry-spring-boot-starter = { module = "io.sentry:sentry-spring-boot-starter-jakarta" }
+
+spring-grpc-bom = { module = "org.springframework.grpc:spring-grpc-dependencies", version.ref = "spring-grpc" }
+spring-grpc-starter = { module = "org.springframework.grpc:spring-grpc-spring-boot-starter" }
+spring-grpc-test = { module = "org.springframework.grpc:spring-grpc-test" }
+grpc-services = { module = "io.grpc:grpc-services" }
 
 [plugins]
+spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
+spring-dependency-management = { id = "io.spring.dependency-management", version.ref = "spring-dependency-management" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-spring = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotlin" }
+protobuf = { id = "com.google.protobuf", version.ref = "protobuf-plugin" }
+
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version = "12.0.3" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }

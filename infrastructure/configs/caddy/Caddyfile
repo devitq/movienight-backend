@@ -9,14 +9,6 @@
 :80 {
 	encode gzip zstd
 
-	handle_path /static/* {
-		uri strip_prefix /static
-		reverse_proxy backend-staticfiles:80 {
-			fail_duration 30s
-			max_fails 10
-		}
-	}
-
 	handle /grafana/* {
 		reverse_proxy grafana:3000 {
 			fail_duration 30s
@@ -36,7 +28,7 @@
 			fail_duration 30s
 			max_fails 10
 
-			health_uri /ready
+			health_uri /actuator/health/readiness
 			health_interval 10s
 			health_timeout 2s
 		}

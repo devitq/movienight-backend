@@ -8,6 +8,8 @@ import com.project.movienight.application.ports.input.EditFilmUseCase
 import com.project.movienight.application.ports.output.FilmRepositoryPort
 import com.project.movienight.application.ports.output.IdGenerator
 import com.project.movienight.config.FilmServiceProperties
+import com.project.movienight.domain.exception.BlockedValueException
+import com.project.movienight.domain.exception.EntityNotFoundException
 import com.project.movienight.domain.model.Film
 import org.springframework.stereotype.Service
 import java.util.UUID
@@ -22,10 +24,10 @@ class FilmService(
     DeleteFilmUseCase {
     override fun create(command: CreateFilmCommand): Film {
         if (filmConfig.isBlocked(command.title)) {
-            throw IllegalArgumentException("Film with this title is not acceptable")
+            throw BlockedValueException(target = "Film", field = "title")
         }
         if (filmConfig.isBlocked(command.description)) {
-            throw IllegalArgumentException("Film with this description is not acceptable")
+            throw BlockedValueException(target = "Film", field = "description")
         }
 
         val film =
@@ -42,13 +44,13 @@ class FilmService(
         command: EditFilmCommand,
     ): Film {
         if (filmConfig.isBlocked(command.title)) {
-            throw IllegalArgumentException("Film with this title is not acceptable")
+            throw BlockedValueException(target = "Film", field = "title")
         }
         if (filmConfig.isBlocked(command.description)) {
-            throw IllegalArgumentException("Film with this description is not acceptable")
+            throw BlockedValueException(target = "Film", field = "description")
         }
 
-        var film = filmRepository.findById(id) ?: throw IllegalArgumentException("Film with id $id not found")
+        var film = filmRepository.findById(id) ?: throw EntityNotFoundException(entity = "Film", id = id.toString())
 
         film = film.copy(title = command.title, description = command.description)
 
@@ -56,7 +58,7 @@ class FilmService(
     }
 
     override fun delete(id: UUID) {
-        filmRepository.findById(id) ?: throw IllegalArgumentException("Film with id $id not found")
+        filmRepository.findById(id) ?: throw EntityNotFoundException(entity = "Film", id = id.toString())
 
         filmRepository.deleteById(id)
     }

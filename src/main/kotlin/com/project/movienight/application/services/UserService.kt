@@ -8,6 +8,8 @@ import com.project.movienight.application.ports.input.EditUserUseCase
 import com.project.movienight.application.ports.output.IdGenerator
 import com.project.movienight.application.ports.output.UserRepositoryPort
 import com.project.movienight.config.UserServiceProperties
+import com.project.movienight.domain.exception.BlockedValueException
+import com.project.movienight.domain.exception.EntityNotFoundException
 import com.project.movienight.domain.model.User
 import org.springframework.stereotype.Service
 import java.util.UUID
@@ -22,7 +24,7 @@ class UserService(
     DeleteUserUseCase {
     override fun create(command: CreateUserCommand): User {
         if (userConfig.isBlocked(command.name)) {
-            throw IllegalArgumentException("User with this name is not acceptable")
+            throw BlockedValueException(target = "User", field = "name")
         }
 
         val user =
@@ -40,10 +42,10 @@ class UserService(
         command: EditUserCommand,
     ): User {
         if (userConfig.isBlocked(command.name)) {
-            throw IllegalArgumentException("User with this name is not acceptable")
+            throw BlockedValueException(target = "User", field = "name")
         }
 
-        var user = userRepository.findById(id) ?: throw IllegalArgumentException("User with id $id not found")
+        var user = userRepository.findById(id) ?: throw EntityNotFoundException(entity = "User", id = id.toString())
 
         user = user.copy(name = command.name)
 
@@ -51,7 +53,7 @@ class UserService(
     }
 
     override fun delete(id: UUID) {
-        userRepository.findById(id) ?: throw IllegalArgumentException("User with id $id not found")
+        userRepository.findById(id) ?: throw EntityNotFoundException(entity = "User", id = id.toString())
 
         userRepository.deleteById(id)
     }

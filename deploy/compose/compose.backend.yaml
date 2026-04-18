@@ -1,0 +1,41 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Containerfile
+    depends_on:
+      valkey:
+        restart: false
+        condition: service_healthy
+        required: true
+      postgresql:
+        restart: false
+        condition: service_healthy
+        required: true
+      s3:
+        restart: false
+        condition: service_healthy
+        required: true
+    env_file:
+      - path: ./infrastructure/configs/backend/.env.template
+        required: true
+      - path: ./infrastructure/configs/backend/.env
+        required: false
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      start_period: 5s
+      start_interval: 2s
+      retries: 5
+    ports:
+      - name: http
+        target: 8080
+        published: ${BACKEND_PORT}
+        host_ip: 127.0.0.1
+        protocol: tcp
+        app_protocol: http
+    networks:
+      - default
+    restart: unless-stopped
+    shm_size: 4mb

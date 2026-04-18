@@ -1,0 +1,14 @@
+name: movienight
+
+x-defaults: &defaults
+  project_directory: ./
+  env_file:
+    - ./.env.template
+
+include:
+  - path: ./deploy/compose/compose.yaml
+    <<: *defaults
+  - path: ./deploy/compose/compose.proxy.yaml
+    <<: *defaults
+  - path: ./deploy/compose/compose.backend.yaml
+    <<: *defaults

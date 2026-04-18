@@ -10,6 +10,7 @@ sentry = "8.27.0"
 spring-grpc = "1.0.1"
 protoc = "3.25.1"
 grpc-java = "1.60.0"
+springdoc = "2.8.6"
 
 [libraries]
 spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web" }
@@ -20,6 +21,7 @@ spring-boot-starter-data-jdbc = { module = "org.springframework.boot:spring-boot
 spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation" }
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
 spring-boot-devtools = { module = "org.springframework.boot:spring-boot-devtools" }
+spring-doc = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
 
 micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
 micrometer-tracing-bridge-otel = { module = "io.micrometer:micrometer-tracing-bridge-otel" }

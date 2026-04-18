@@ -36,6 +36,7 @@ dependencies {
     implementation(libs.spring.boot.starter.cache)
     implementation(libs.spring.boot.starter.data.jdbc)
     implementation(libs.spring.boot.starter.validation)
+    implementation(libs.spring.doc)
     implementation(libs.flyway.database.postgresql)
     implementation(libs.kotlin.reflect)
 

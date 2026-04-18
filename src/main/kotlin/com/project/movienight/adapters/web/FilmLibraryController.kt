@@ -1,5 +1,7 @@
 package com.project.movienight.adapters.web
 
+import com.project.movienight.adapters.web.dto.request.CreateFilmLibraryRequest
+import com.project.movienight.adapters.web.dto.response.FilmLibraryResponse
 import com.project.movienight.application.ports.input.AddFilmToLibraryCommand
 import com.project.movienight.application.ports.input.AddFilmToLibraryUseCase
 import com.project.movienight.application.ports.input.CreateFilmLibraryCommand
@@ -8,9 +10,15 @@ import com.project.movienight.application.ports.input.GetFilmLibraryQuery
 import com.project.movienight.application.ports.input.GetFilmLibraryUseCase
 import com.project.movienight.application.ports.input.RemoveFilmFromLibraryCommand
 import com.project.movienight.application.ports.input.RemoveFilmFromLibraryUseCase
-import com.project.movienight.domain.model.FilmLibrary
 import org.springframework.http.HttpStatus
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.ResponseStatus
+import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
 @RestController
@@ -21,24 +29,29 @@ class FilmLibraryController(
     private val removeFilmFromLibraryUseCase: RemoveFilmFromLibraryUseCase,
     private val getFilmLibraryUseCase: GetFilmLibraryUseCase,
 ) {
-
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     fun create(
         @PathVariable userId: UUID,
         @RequestBody request: CreateFilmLibraryRequest,
-    ): FilmLibrary =
-        createFilmLibraryUseCase.create(
-            CreateFilmLibraryCommand(
-                userId = userId,
-                name = request.name,
-            )
+    ): FilmLibraryResponse =
+        FilmLibraryResponse.fromDomain(
+            createFilmLibraryUseCase.create(
+                CreateFilmLibraryCommand(
+                    userId = userId,
+                    name = request.name,
+                ),
+            ),
         )
 
     @GetMapping
-    fun get(@PathVariable userId: UUID): FilmLibrary =
-        getFilmLibraryUseCase.getLibrary(
-            GetFilmLibraryQuery(userId = userId)
+    fun get(
+        @PathVariable userId: UUID,
+    ): FilmLibraryResponse =
+        FilmLibraryResponse.fromDomain(
+            getFilmLibraryUseCase.getLibrary(
+                GetFilmLibraryQuery(userId = userId),
+            ),
         )
 
     @PostMapping("/films/{filmId}")
@@ -46,12 +59,14 @@ class FilmLibraryController(
     fun addFilm(
         @PathVariable userId: UUID,
         @PathVariable filmId: UUID,
-    ): FilmLibrary =
-        addFilmToLibraryUseCase.addFilm(
-            AddFilmToLibraryCommand(
-                userId = userId,
-                filmId = filmId,
-            )
+    ): FilmLibraryResponse =
+        FilmLibraryResponse.fromDomain(
+            addFilmToLibraryUseCase.addFilm(
+                AddFilmToLibraryCommand(
+                    userId = userId,
+                    filmId = filmId,
+                ),
+            ),
         )
 
     @DeleteMapping("/films/{filmId}")
@@ -63,10 +78,6 @@ class FilmLibraryController(
         RemoveFilmFromLibraryCommand(
             userId = userId,
             filmId = filmId,
-        )
+        ),
     )
 }
-
-data class CreateFilmLibraryRequest(
-    val name: String = "Мои фильмы",
-)

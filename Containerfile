@@ -12,11 +12,13 @@ WORKDIR ${APP_HOME}
 ENV GRADLE_USER_HOME=${GRADLE_USER_HOME} \
     ORG_GRADLE_PROJECT_buildCacheEnabled=true
 
-COPY gradle gradle
-COPY gradlew gradlew
-COPY settings.gradle.kts build.gradle.kts gradle.properties ./
+COPY gradle ./gradle
+
+COPY gradlew gradle.properties settings.gradle.kts ./
 
 RUN gradle wrapper
+
+COPY build.gradle.kts ./
 
 RUN --mount=type=cache,target=${GRADLE_USER_HOME} \
     ./gradlew --no-daemon --no-parallel dependencies || true

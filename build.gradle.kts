@@ -32,7 +32,7 @@ dependencies {
 
     implementation(libs.spring.boot.starter.web)
     implementation(libs.spring.boot.starter.actuator)
-    implementation(libs.spring.boot.starter.security)
+//    implementation(libs.spring.boot.starter.security)
     implementation(libs.spring.boot.starter.cache)
     implementation(libs.spring.boot.starter.data.jdbc)
     implementation(libs.spring.boot.starter.validation)

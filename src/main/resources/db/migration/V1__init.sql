@@ -1,20 +1,16 @@
-DROP TABLE IF EXISTS public.favorites;
-DROP TABLE IF EXISTS public.films;
-DROP TABLE IF EXISTS public.users;
-
-CREATE TABLE public.users (
+CREATE TABLE IF NOT EXISTS public.users (
     id UUID PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     email VARCHAR(320) NOT NULL UNIQUE
 );
 
-CREATE TABLE public.films (
+CREATE TABLE IF NOT EXISTS public.films (
     id UUID PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     description TEXT NOT NULL
 );
 
-CREATE TABLE public.favorites (
+CREATE TABLE IF NOT EXISTS public.favorites (
     id UUID PRIMARY KEY,
     user_id UUID NOT NULL,
     film_id UUID NOT NULL,

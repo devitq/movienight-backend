@@ -62,4 +62,8 @@ class FilmService(
 
         filmRepository.deleteById(id)
     }
+
+    fun findByTitle(title: String): Film? = filmRepository.findByTitle(title)
+
+    fun findAll(): List<Film> = filmRepository.findAll()
 }

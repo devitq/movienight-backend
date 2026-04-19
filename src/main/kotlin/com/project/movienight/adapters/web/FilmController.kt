@@ -9,6 +9,7 @@ import com.project.movienight.application.ports.input.DeleteFilmUseCase
 import com.project.movienight.application.ports.input.EditFilmCommand
 import com.project.movienight.application.ports.input.EditFilmUseCase
 import com.project.movienight.application.services.FilmService
+import com.project.movienight.domain.exception.EntityNotFoundException
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
 import java.util.UUID
@@ -56,6 +57,14 @@ class FilmController(
     fun delete(
         @PathVariable id: UUID,
     ) = deleteFilmUseCase.delete(id)
+
+    @GetMapping("/{id}")
+    fun getById(
+        @PathVariable id: UUID,
+    ): FilmResponse =
+        FilmResponse.fromDomain(
+            filmService.findById(id) ?: throw EntityNotFoundException("Film", id.toString())
+        )
 
     @GetMapping("/search")
     fun searchByTitle(

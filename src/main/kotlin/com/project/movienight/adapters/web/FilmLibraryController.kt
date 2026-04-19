@@ -50,6 +50,19 @@ class FilmLibraryController(
             ),
         )
 
+    @GetMapping("/films")
+    fun getAllFilmsInLibrary(
+        @PathVariable userId: UUID,
+    ): List<FilmResponse> {
+        val library = getFilmLibraryUseCase.getLibrary(
+            GetFilmLibraryQuery(userId = userId)
+        )
+
+        val film = filmService.findById(library.filmId)
+
+        return film?.let { listOf(FilmResponse.fromDomain(it)) } ?: emptyList()
+    }
+
     @PostMapping("/films/{filmId}")
     @ResponseStatus(HttpStatus.CREATED)
     fun addFilm(

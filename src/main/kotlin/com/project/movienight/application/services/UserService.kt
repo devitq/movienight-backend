@@ -57,4 +57,8 @@ class UserService(
 
         userRepository.deleteById(id)
     }
+
+    fun findAll(): List<User> = userRepository.findAll()
+
+    fun findById(id: UUID): User? = userRepository.findById(id)
 }

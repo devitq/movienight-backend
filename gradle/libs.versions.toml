@@ -11,6 +11,7 @@ spring-grpc = "1.0.1"
 protoc = "3.25.1"
 grpc-java = "1.60.0"
 springdoc = "2.8.6"
+mockk = "1.13.13"
 
 [libraries]
 spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web" }
@@ -33,6 +34,7 @@ flyway-database-postgresql = { module = "org.flywaydb:flyway-database-postgresql
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect" }
 kotlin-test-junit5 = { module = "org.jetbrains.kotlin:kotlin-test-junit5" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 
 sentry-bom = { module = "io.sentry:sentry-bom", version.ref = "sentry" }
 sentry-spring-boot-starter = { module = "io.sentry:sentry-spring-boot-starter-jakarta" }

@@ -11,7 +11,7 @@ spring-grpc = "1.0.1"
 protoc = "3.25.1"
 grpc-java = "1.60.0"
 springdoc = "2.8.6"
-mockk = "1.13.12"
+mockk = "1.13.13"
 
 [libraries]
 spring-boot-starter-oauth2-client = { module = "org.springframework.boot:spring-boot-starter-oauth2-client" }

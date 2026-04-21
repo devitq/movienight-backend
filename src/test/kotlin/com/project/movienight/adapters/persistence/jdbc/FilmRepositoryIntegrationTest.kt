@@ -41,11 +41,12 @@ class FilmRepositoryIntegrationTest {
 
     @Test
     fun `should save new film and return saved film`() {
-        val film = Film(
-            id = UUID.randomUUID(),
-            title = "Начало",
-            description = "Захватывающий триллер о снах внутри снов",
-        )
+        val film =
+            Film(
+                id = UUID.randomUUID(),
+                title = "Начало",
+                description = "Захватывающий триллер о снах внутри снов",
+            )
 
         val savedFilm = filmRepository.save(film)
 

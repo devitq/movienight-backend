@@ -41,12 +41,13 @@ class UserRepositoryIntegrationTest {
 
     @Test
     fun `should save new user and return saved user`() {
-        val user = User(
-            id = UUID.randomUUID(),
-            name = "John Doe",
-            email = "john@example.com",
-            library = null,
-        )
+        val user =
+            User(
+                id = UUID.randomUUID(),
+                name = "John Doe",
+                email = "john@example.com",
+                library = null,
+            )
 
         val savedUser = userRepository.save(user)
 

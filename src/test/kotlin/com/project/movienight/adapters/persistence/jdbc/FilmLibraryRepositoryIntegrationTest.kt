@@ -61,13 +61,14 @@ class FilmLibraryRepositoryIntegrationTest {
 
     @Test
     fun `should save new film library entry and return saved entry`() {
-        val entry = FilmLibrary(
-            id = UUID.randomUUID(),
-            userId = testUser.id,
-            filmId = testFilm.id,
-            comment = "Отличный фильм!",
-            isViewed = false,
-        )
+        val entry =
+            FilmLibrary(
+                id = UUID.randomUUID(),
+                userId = testUser.id,
+                filmId = testFilm.id,
+                comment = "Отличный фильм!",
+                isViewed = false,
+            )
 
         val savedEntry = filmLibraryRepository.save(entry)
 

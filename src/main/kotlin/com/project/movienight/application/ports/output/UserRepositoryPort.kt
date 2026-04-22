@@ -8,6 +8,8 @@ interface UserRepositoryPort {
 
     fun findById(id: UUID): User?
 
+    fun findByEmail(email: String): User?
+
     fun findAll(): List<User>
 
     fun deleteById(id: UUID)

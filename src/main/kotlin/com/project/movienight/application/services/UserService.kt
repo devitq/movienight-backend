@@ -32,6 +32,7 @@ class UserService(
                 id = idGenerator.generateId(),
                 name = command.name,
                 email = command.email,
+                password = "",
                 library = null,
             )
         return userRepository.save(user)

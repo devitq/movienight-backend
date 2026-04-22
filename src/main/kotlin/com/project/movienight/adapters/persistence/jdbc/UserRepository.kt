@@ -16,6 +16,7 @@ class UserRepository(
             id = UUID.fromString(rs.getString("id")),
             name = rs.getString("name"),
             email = rs.getString("email"),
+            password = rs.getString("password"),
             library = null,
         )
     }
@@ -53,6 +54,15 @@ class UserRepository(
                 userRowMapper,
                 id,
             )
+        return users.firstOrNull()
+    }
+
+    override fun findByEmail(email: String): User? {
+        val users = jdbc.query(
+            "SELECT id, name, email, password FROM users WHERE email = ?",
+            userRowMapper,
+            email,
+        )
         return users.firstOrNull()
     }
 

@@ -47,6 +47,8 @@ dependencies {
     implementation(libs.spring.grpc.starter)
     implementation(libs.grpc.services)
 
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-client:3.4.3")
+
     runtimeOnly(libs.micrometer.registry.prometheus)
     runtimeOnly(libs.h2)
     runtimeOnly(libs.postgresql)

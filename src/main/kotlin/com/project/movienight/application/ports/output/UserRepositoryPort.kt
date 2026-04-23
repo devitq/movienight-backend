@@ -7,6 +7,10 @@ import java.util.UUID
 interface UserRepositoryPort {
     fun save(user: User): User
 
+    fun saveWithOAuth2(user: User, provider: String, providerId: String): User
+
+    fun findByProviderAndProviderId(provider: String, providerId: String): User?
+
     fun findById(id: UUID): User?
 
     fun findByEmail(email: String): User?

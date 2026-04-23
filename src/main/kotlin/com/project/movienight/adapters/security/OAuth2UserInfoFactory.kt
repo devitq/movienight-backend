@@ -1,4 +1,4 @@
-package com.project.movienight.adapters.security.oauth2
+package com.project.movienight.adapters.security
 
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException
 import org.springframework.security.oauth2.core.user.OAuth2User

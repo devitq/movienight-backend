@@ -1,4 +1,4 @@
-package com.project.movienight.adapters.security.oauth2
+package com.project.movienight.adapters.security
 
 import com.project.movienight.application.ports.output.IdGenerator
 import com.project.movienight.application.ports.output.UserRepositoryPort
@@ -37,21 +37,34 @@ class CustomOAuth2UserService(
     }
 
     private fun findOrCreateUser(userInfo: OAuth2UserInfo): User {
-        val existingUser = userRepository.findByEmail(userInfo.getEmail())
+        // Сначала ищем по provider + provider_id (основной способ для OAuth2)
+        val existingUser = userRepository.findByProviderAndProviderId(
+            userInfo.getProvider(),
+            userInfo.getProviderId()
+        )
 
         return if (existingUser != null) {
-            log.debug("User found by email: {}", userInfo.getEmail())
+            log.debug("User found by provider: {}", userInfo.getProvider())
             existingUser
         } else {
-            log.debug("Creating new user for provider: {}", userInfo.getProvider())
-            val newUser = User(
-                id = idGenerator.generateId(),
-                name = userInfo.getName(),
-                email = userInfo.getEmail(),
-                password = "", // OAuth2 пользователи не имеют пароля
-                library = null,
-            )
-            userRepository.save(newUser)
+            // Проверяем нет ли пользователя с таким email (связывание аккаунтов)
+            val userByEmail = userRepository.findByEmail(userInfo.getEmail())
+
+            if (userByEmail != null) {
+                // Пользователь существует, обновляем его OAuth2 данными
+                log.debug("Linking OAuth2 account to existing user: {}", userInfo.getEmail())
+                userRepository.saveWithOAuth2(userByEmail, userInfo.getProvider(), userInfo.getProviderId())
+            } else {
+                log.debug("Creating new user for provider: {}", userInfo.getProvider())
+                val newUser = User(
+                    id = idGenerator.generateId(),
+                    name = userInfo.getName(),
+                    email = userInfo.getEmail(),
+                    password = "",
+                    library = null,
+                )
+                userRepository.saveWithOAuth2(newUser, userInfo.getProvider(), userInfo.getProviderId())
+            }
         }
     }
 }

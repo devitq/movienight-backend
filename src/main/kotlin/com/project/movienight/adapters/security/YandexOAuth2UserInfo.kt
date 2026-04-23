@@ -1,4 +1,4 @@
-package com.project.movienight.adapters.security.oauth2
+package com.project.movienight.adapters.security
 
 @Suppress("UNCHECKED_CAST")
 class YandexOAuth2UserInfo(

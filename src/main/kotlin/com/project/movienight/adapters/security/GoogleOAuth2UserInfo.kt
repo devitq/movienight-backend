@@ -1,4 +1,4 @@
-package com.project.movienight.adapters.security.oauth2
+package com.project.movienight.adapters.security
 
 class GoogleOAuth2UserInfo(
     private val attributes: Map<String, Any>

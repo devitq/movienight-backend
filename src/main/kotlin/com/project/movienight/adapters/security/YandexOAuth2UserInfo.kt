@@ -1,6 +1,7 @@
 package com.project.movienight.adapters.security
 
-@Suppress("UNCHECKED_CAST")
+import com.project.movienight.application.ports.input.security.OAuth2UserInfo
+
 class YandexOAuth2UserInfo(
     private val attributes: Map<String, Any>
 ) : OAuth2UserInfo {
@@ -8,11 +9,14 @@ class YandexOAuth2UserInfo(
     override fun getProviderId(): String = attributes["id"]?.toString() ?: ""
 
     override fun getEmail(): String {
-        val emails = attributes["emails"] as? List<Map<String, String>>
-        return emails?.firstOrNull()?.get("value") ?: ""
+        return (attributes["emails"] as? List<*>)
+            ?.firstOrNull()
+            ?.let { it as? Map<*, *> }
+            ?.get("value")
+            ?.toString() ?: ""
     }
 
-    override fun getName(): String = attributes["display_name"] as? String ?: ""
+    override fun getName(): String = attributes["display_name"]?.toString() ?: ""
 
     override fun getProvider(): String = "yandex"
 

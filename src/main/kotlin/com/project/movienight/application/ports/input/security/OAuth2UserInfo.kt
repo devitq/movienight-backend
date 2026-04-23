@@ -1,4 +1,4 @@
-package com.project.movienight.adapters.security
+package com.project.movienight.application.ports.input.security
 
 interface OAuth2UserInfo {
     fun getProviderId(): String

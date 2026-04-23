@@ -1,5 +1,7 @@
 package com.project.movienight.adapters.security
 
+import com.project.movienight.application.ports.input.security.OAuth2UserInfo
+
 class GoogleOAuth2UserInfo(
     private val attributes: Map<String, Any>
 ) : OAuth2UserInfo {

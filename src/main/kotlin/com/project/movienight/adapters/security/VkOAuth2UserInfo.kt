@@ -1,22 +1,26 @@
 package com.project.movienight.adapters.security
 
-@Suppress("UNCHECKED_CAST")
+import com.project.movienight.application.ports.input.security.OAuth2UserInfo
+
 class VkOAuth2UserInfo(
     private val attributes: Map<String, Any>
 ) : OAuth2UserInfo {
 
     override fun getProviderId(): String {
-        val response = attributes["response"] as? List<Map<String, Any>>
-        return response?.firstOrNull()?.get("id")?.toString() ?: ""
+        return (attributes["response"] as? List<*>)
+            ?.firstOrNull()
+            ?.let { it as? Map<*, *> }
+            ?.get("id")
+            ?.toString() ?: ""
     }
 
-    override fun getEmail(): String = attributes["email"] as? String ?: ""
+    override fun getEmail(): String = attributes["email"]?.toString() ?: ""
 
     override fun getName(): String {
-        val response = attributes["response"] as? List<Map<String, Any>>
-        val first = response?.firstOrNull()
-        val firstName = first?.get("first_name") as? String ?: ""
-        val lastName = first?.get("last_name") as? String ?: ""
+        val response = attributes["response"] as? List<*>
+        val first = response?.firstOrNull() as? Map<*, *>
+        val firstName = first?.get("first_name")?.toString() ?: ""
+        val lastName = first?.get("last_name")?.toString() ?: ""
         return "$firstName $lastName".trim()
     }
 

@@ -1,5 +1,6 @@
 package com.project.movienight.adapters.security
 
+import com.project.movienight.application.ports.input.security.OAuth2UserInfo
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException
 import org.springframework.security.oauth2.core.user.OAuth2User
 

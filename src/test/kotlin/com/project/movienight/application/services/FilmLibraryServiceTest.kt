@@ -38,19 +38,24 @@ class FilmLibraryServiceTest {
         val libraryId = UUID.randomUUID()
         val filmId = UUID.randomUUID()
         val command = CreateFilmLibraryCommand(userId = userId, name = "My Films")
-        val expectedLibrary = FilmLibrary(
-            id = libraryId,
-            userId = userId,
-            filmId = filmId,
-            comment = "My Films",
-            isViewed = false,
-        )
+        val expectedLibrary =
+            FilmLibrary(
+                id = libraryId,
+                userId = userId,
+                filmId = filmId,
+                comment = "My Films",
+                isViewed = false,
+            )
 
         every { filmLibraryRepository.findAll() } returns emptyList()
         every { idGenerator.generateId() } returnsMany listOf(libraryId, filmId)
-        every { filmLibraryRepository.save(match {
-            it.userId == userId && it.comment == "My Films" && it.isViewed == false
-        }) } returns expectedLibrary
+        every {
+            filmLibraryRepository.save(
+                match {
+                    it.userId == userId && it.comment == "My Films" && it.isViewed == false
+                },
+            )
+        } returns expectedLibrary
 
         val result = filmLibraryService.create(command)
 
@@ -68,13 +73,14 @@ class FilmLibraryServiceTest {
     @Test
     fun `should return existing library when user already has one`() {
         val userId = UUID.randomUUID()
-        val existingLibrary = FilmLibrary(
-            id = UUID.randomUUID(),
-            userId = userId,
-            filmId = UUID.randomUUID(),
-            comment = "Existing Library",
-            isViewed = false,
-        )
+        val existingLibrary =
+            FilmLibrary(
+                id = UUID.randomUUID(),
+                userId = userId,
+                filmId = UUID.randomUUID(),
+                comment = "Existing Library",
+                isViewed = false,
+            )
         val command = CreateFilmLibraryCommand(userId = userId, name = "New Library")
 
         every { filmLibraryRepository.findAll() } returns listOf(existingLibrary)
@@ -94,19 +100,24 @@ class FilmLibraryServiceTest {
         val filmId = UUID.randomUUID()
         val libraryId = UUID.randomUUID()
         val command = AddFilmToLibraryCommand(userId = userId, filmId = filmId)
-        val expectedLibrary = FilmLibrary(
-            id = libraryId,
-            userId = userId,
-            filmId = filmId,
-            comment = null,
-            isViewed = false,
-        )
+        val expectedLibrary =
+            FilmLibrary(
+                id = libraryId,
+                userId = userId,
+                filmId = filmId,
+                comment = null,
+                isViewed = false,
+            )
 
         every { filmLibraryRepository.findAll() } returns emptyList()
         every { idGenerator.generateId() } returns libraryId
-        every { filmLibraryRepository.save(match {
-            it.userId == userId && it.filmId == filmId && it.comment == null && it.isViewed == false
-        }) } returns expectedLibrary
+        every {
+            filmLibraryRepository.save(
+                match {
+                    it.userId == userId && it.filmId == filmId && it.comment == null && it.isViewed == false
+                },
+            )
+        } returns expectedLibrary
 
         val result = filmLibraryService.addFilm(command)
 
@@ -124,20 +135,25 @@ class FilmLibraryServiceTest {
         val userId = UUID.randomUUID()
         val oldFilmId = UUID.randomUUID()
         val newFilmId = UUID.randomUUID()
-        val existingLibrary = FilmLibrary(
-            id = UUID.randomUUID(),
-            userId = userId,
-            filmId = oldFilmId,
-            comment = "My Library",
-            isViewed = true,
-        )
+        val existingLibrary =
+            FilmLibrary(
+                id = UUID.randomUUID(),
+                userId = userId,
+                filmId = oldFilmId,
+                comment = "My Library",
+                isViewed = true,
+            )
         val command = AddFilmToLibraryCommand(userId = userId, filmId = newFilmId)
         val updatedLibrary = existingLibrary.copy(filmId = newFilmId, isViewed = false)
 
         every { filmLibraryRepository.findAll() } returns listOf(existingLibrary)
-        every { filmLibraryRepository.save(match {
-            it.filmId == newFilmId && it.isViewed == false
-        }) } returns updatedLibrary
+        every {
+            filmLibraryRepository.save(
+                match {
+                    it.filmId == newFilmId && it.isViewed == false
+                },
+            )
+        } returns updatedLibrary
 
         val result = filmLibraryService.addFilm(command)
 
@@ -154,13 +170,14 @@ class FilmLibraryServiceTest {
         val userId = UUID.randomUUID()
         val filmId = UUID.randomUUID()
         val libraryId = UUID.randomUUID()
-        val existingLibrary = FilmLibrary(
-            id = libraryId,
-            userId = userId,
-            filmId = filmId,
-            comment = "My Library",
-            isViewed = false,
-        )
+        val existingLibrary =
+            FilmLibrary(
+                id = libraryId,
+                userId = userId,
+                filmId = filmId,
+                comment = "My Library",
+                isViewed = false,
+            )
         val command = RemoveFilmFromLibraryCommand(userId = userId, filmId = filmId)
 
         every { filmLibraryRepository.findAll() } returns listOf(existingLibrary)
@@ -195,13 +212,14 @@ class FilmLibraryServiceTest {
         val userId = UUID.randomUUID()
         val libraryFilmId = UUID.randomUUID()
         val differentFilmId = UUID.randomUUID()
-        val existingLibrary = FilmLibrary(
-            id = UUID.randomUUID(),
-            userId = userId,
-            filmId = libraryFilmId,
-            comment = "My Library",
-            isViewed = false,
-        )
+        val existingLibrary =
+            FilmLibrary(
+                id = UUID.randomUUID(),
+                userId = userId,
+                filmId = libraryFilmId,
+                comment = "My Library",
+                isViewed = false,
+            )
         val command = RemoveFilmFromLibraryCommand(userId = userId, filmId = differentFilmId)
 
         every { filmLibraryRepository.findAll() } returns listOf(existingLibrary)
@@ -220,18 +238,20 @@ class FilmLibraryServiceTest {
         val filmId = UUID.randomUUID()
         val actualLibraryId = UUID.randomUUID()
         val wrongLibraryId = UUID.randomUUID()
-        val existingLibrary = FilmLibrary(
-            id = actualLibraryId,
-            userId = userId,
-            filmId = filmId,
-            comment = "My Library",
-            isViewed = false,
-        )
-        val command = RemoveFilmFromLibraryCommand(
-            userId = userId,
-            filmId = filmId,
-            libraryId = wrongLibraryId,
-        )
+        val existingLibrary =
+            FilmLibrary(
+                id = actualLibraryId,
+                userId = userId,
+                filmId = filmId,
+                comment = "My Library",
+                isViewed = false,
+            )
+        val command =
+            RemoveFilmFromLibraryCommand(
+                userId = userId,
+                filmId = filmId,
+                libraryId = wrongLibraryId,
+            )
 
         every { filmLibraryRepository.findAll() } returns listOf(existingLibrary)
 
@@ -246,13 +266,14 @@ class FilmLibraryServiceTest {
     @Test
     fun `should get library successfully`() {
         val userId = UUID.randomUUID()
-        val existingLibrary = FilmLibrary(
-            id = UUID.randomUUID(),
-            userId = userId,
-            filmId = UUID.randomUUID(),
-            comment = "My Library",
-            isViewed = false,
-        )
+        val existingLibrary =
+            FilmLibrary(
+                id = UUID.randomUUID(),
+                userId = userId,
+                filmId = UUID.randomUUID(),
+                comment = "My Library",
+                isViewed = false,
+            )
         val query = GetFilmLibraryQuery(userId = userId)
 
         every { filmLibraryRepository.findAll() } returns listOf(existingLibrary)

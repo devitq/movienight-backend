@@ -7,13 +7,21 @@ import com.project.movienight.application.ports.input.AddFilmToLibraryCommand
 import com.project.movienight.application.ports.input.AddFilmToLibraryUseCase
 import com.project.movienight.application.ports.input.CreateFilmLibraryCommand
 import com.project.movienight.application.ports.input.CreateFilmLibraryUseCase
+import com.project.movienight.application.ports.input.GetAllFilmsUseCase
+import com.project.movienight.application.ports.input.GetFilmByIdUseCase
 import com.project.movienight.application.ports.input.GetFilmLibraryQuery
 import com.project.movienight.application.ports.input.GetFilmLibraryUseCase
 import com.project.movienight.application.ports.input.RemoveFilmFromLibraryCommand
 import com.project.movienight.application.ports.input.RemoveFilmFromLibraryUseCase
-import com.project.movienight.application.services.FilmService
 import org.springframework.http.HttpStatus
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.ResponseStatus
+import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
 @RestController
@@ -23,7 +31,8 @@ class FilmLibraryController(
     private val addFilmToLibraryUseCase: AddFilmToLibraryUseCase,
     private val removeFilmFromLibraryUseCase: RemoveFilmFromLibraryUseCase,
     private val getFilmLibraryUseCase: GetFilmLibraryUseCase,
-    private val filmService: FilmService,
+    private val getFilmByIdUseCase: GetFilmByIdUseCase,
+    private val getAllFilmsUseCase: GetAllFilmsUseCase,
 ) {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -58,9 +67,9 @@ class FilmLibraryController(
             GetFilmLibraryQuery(userId = userId)
         )
 
-        val film = filmService.findById(library.filmId)
+        val film = getFilmByIdUseCase.getById(library.filmId)
 
-        return film?.let { listOf(FilmResponse.fromDomain(it)) } ?: emptyList()
+        return listOf(FilmResponse.fromDomain(film))
     }
 
     @PostMapping("/films/{filmId}")
@@ -98,7 +107,7 @@ class FilmLibraryController(
             GetFilmLibraryQuery(userId = userId)
         )
 
-        val allFilms = filmService.findAll()
+        val allFilms = getAllFilmsUseCase.getAll()
 
         val availableFilms = allFilms.filter { it.id != userLibrary.filmId }
 

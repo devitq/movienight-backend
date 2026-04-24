@@ -8,10 +8,18 @@ import com.project.movienight.application.ports.input.CreateUserUseCase
 import com.project.movienight.application.ports.input.DeleteUserUseCase
 import com.project.movienight.application.ports.input.EditUserCommand
 import com.project.movienight.application.ports.input.EditUserUseCase
-import com.project.movienight.application.services.UserService
-import com.project.movienight.domain.exception.EntityNotFoundException
+import com.project.movienight.application.ports.input.GetAllUsersUseCase
+import com.project.movienight.application.ports.input.GetUserByIdUseCase
 import org.springframework.http.HttpStatus
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.ResponseStatus
+import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
 @RestController
@@ -20,7 +28,8 @@ class UserController(
     private val createUserUseCase: CreateUserUseCase,
     private val editUserUseCase: EditUserUseCase,
     private val deleteUserUseCase: DeleteUserUseCase,
-    private val userService: UserService,
+    private val getUserByIdUseCase: GetUserByIdUseCase,
+    private val getAllUsersUseCase: GetAllUsersUseCase,
 ) {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -38,15 +47,13 @@ class UserController(
 
     @GetMapping
     fun getAll(): List<UserResponse> =
-        userService.findAll().map { UserResponse.fromDomain(it) }
+        getAllUsersUseCase.getAll().map { UserResponse.fromDomain(it) }
 
     @GetMapping("/{id}")
     fun getById(
         @PathVariable id: UUID,
     ): UserResponse =
-        UserResponse.fromDomain(
-            userService.findById(id) ?: throw EntityNotFoundException("User", id.toString())
-        )
+        UserResponse.fromDomain(getUserByIdUseCase.getById(id))
 
     @PatchMapping("/{id}")
     fun edit(
@@ -56,10 +63,9 @@ class UserController(
         UserResponse.fromDomain(
             editUserUseCase.edit(
                 id = id,
-                command =
-                    EditUserCommand(
-                        name = request.name,
-                    ),
+                command = EditUserCommand(
+                    name = request.name,
+                ),
             ),
         )
 

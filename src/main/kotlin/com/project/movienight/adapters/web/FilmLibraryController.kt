@@ -7,11 +7,13 @@ import com.project.movienight.application.ports.input.AddFilmToLibraryCommand
 import com.project.movienight.application.ports.input.AddFilmToLibraryUseCase
 import com.project.movienight.application.ports.input.CreateFilmLibraryCommand
 import com.project.movienight.application.ports.input.CreateFilmLibraryUseCase
+import com.project.movienight.application.ports.input.GetAllFilmsUseCase
+import com.project.movienight.application.ports.input.GetFilmByIdUseCase
 import com.project.movienight.application.ports.input.GetFilmLibraryQuery
 import com.project.movienight.application.ports.input.GetFilmLibraryUseCase
 import com.project.movienight.application.ports.input.RemoveFilmFromLibraryCommand
 import com.project.movienight.application.ports.input.RemoveFilmFromLibraryUseCase
-import com.project.movienight.application.services.FilmService
+import com.project.movienight.domain.exception.EntityNotFoundException
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
@@ -21,7 +23,6 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
-import org.springframework.web.bind.annotation.*
 import java.util.UUID
 
 @RestController
@@ -31,7 +32,8 @@ class FilmLibraryController(
     private val addFilmToLibraryUseCase: AddFilmToLibraryUseCase,
     private val removeFilmFromLibraryUseCase: RemoveFilmFromLibraryUseCase,
     private val getFilmLibraryUseCase: GetFilmLibraryUseCase,
-    private val filmService: FilmService,
+    private val getFilmByIdUseCase: GetFilmByIdUseCase,
+    private val getAllFilmsUseCase: GetAllFilmsUseCase,
 ) {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -57,6 +59,17 @@ class FilmLibraryController(
                 GetFilmLibraryQuery(userId = userId),
             ),
         )
+
+    @GetMapping("/films")
+    fun getAllFilmsInLibrary(
+        @PathVariable userId: UUID,
+    ): List<FilmResponse> {
+        val library = getFilmLibraryUseCase.getLibrary(
+            GetFilmLibraryQuery(userId = userId),
+        )
+        val film = getFilmByIdUseCase.getById(library.filmId)
+        return listOf(FilmResponse.fromDomain(film))
+    }
 
     @PostMapping("/films/{filmId}")
     @ResponseStatus(HttpStatus.CREATED)
@@ -89,13 +102,21 @@ class FilmLibraryController(
     fun getAvailableFilms(
         @PathVariable userId: UUID,
     ): List<FilmResponse> {
-        val userLibrary = getFilmLibraryUseCase.getLibrary(
-            GetFilmLibraryQuery(userId = userId)
-        )
+        val userLibrary = try {
+            getFilmLibraryUseCase.getLibrary(
+                GetFilmLibraryQuery(userId = userId),
+            )
+        } catch (e: EntityNotFoundException) {
+            null
+        }
 
-        val allFilms = filmService.findAll()
+        val allFilms = getAllFilmsUseCase.getAll()
 
-        val availableFilms = allFilms.filter { it.id != userLibrary.filmId }
+        val availableFilms = if (userLibrary != null) {
+            allFilms.filter { it.id != userLibrary.filmId }
+        } else {
+            allFilms
+        }
 
         return availableFilms.map { FilmResponse.fromDomain(it) }
     }

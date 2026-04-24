@@ -9,8 +9,11 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
 
 @SpringBootTest
@@ -28,13 +31,13 @@ class UserControllerTest {
     fun `create user should return 201 CREATED`() {
         val request = CreateUserRequest(
             name = "John Doe",
-            email = "john@example.com"
+            email = "john@example.com",
         )
 
         mockMvc.perform(
             post("/api/users")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request))
+                .content(objectMapper.writeValueAsString(request)),
         )
             .andExpect(status().isCreated)
             .andExpect(jsonPath("$.name").value("John Doe"))
@@ -42,18 +45,17 @@ class UserControllerTest {
             .andExpect(jsonPath("$.id").exists())
     }
 
-
     @Test
     fun `edit user should return updated user`() {
         val createRequest = CreateUserRequest(
             name = "Old Name",
-            email = "edit@example.com"
+            email = "edit@example.com",
         )
 
         val response = mockMvc.perform(
             post("/api/users")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(createRequest))
+                .content(objectMapper.writeValueAsString(createRequest)),
         ).andReturn()
 
         val userId = objectMapper.readTree(response.response.contentAsString).get("id").asText()
@@ -63,7 +65,7 @@ class UserControllerTest {
         mockMvc.perform(
             patch("/api/users/$userId")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(editRequest))
+                .content(objectMapper.writeValueAsString(editRequest)),
         )
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.name").value("New Name"))
@@ -74,13 +76,13 @@ class UserControllerTest {
     fun `delete user should return 204 NO CONTENT`() {
         val request = CreateUserRequest(
             name = "User To Delete",
-            email = "delete@example.com"
+            email = "delete@example.com",
         )
 
         val response = mockMvc.perform(
             post("/api/users")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request))
+                .content(objectMapper.writeValueAsString(request)),
         ).andReturn()
 
         val userId = objectMapper.readTree(response.response.contentAsString).get("id").asText()

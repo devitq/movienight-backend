@@ -26,7 +26,7 @@ class FilmControllerTest {
     fun `create film should return 201 CREATED`() {
         val request = CreateFilmRequest(
             title = "The Matrix",
-            description = "A computer hacker learns about the true nature of reality"
+            description = "A computer hacker learns about the true nature of reality",
         )
 
         mockMvc.perform(
@@ -39,7 +39,6 @@ class FilmControllerTest {
             .andExpect(jsonPath("$.description").value("A computer hacker learns about the true nature of reality"))
             .andExpect(jsonPath("$.id").exists())
     }
-
 
     @Test
     fun `edit film should return updated film`() {
@@ -58,7 +57,7 @@ class FilmControllerTest {
 
         val editRequest = EditFilmRequest(
             title = "New Title",
-            description = "New Description"
+            description = "New Description",
         )
 
         mockMvc.perform(
@@ -70,7 +69,6 @@ class FilmControllerTest {
             .andExpect(jsonPath("$.title").value("New Title"))
             .andExpect(jsonPath("$.description").value("New Description"))
     }
-
 
     @Test
     fun `search film by title should return film`() {
@@ -94,7 +92,6 @@ class FilmControllerTest {
             .andExpect(jsonPath("$.description").value("Dream within a dream"))
     }
 
-
     @Test
     fun `search film by non-existent title should return empty`() {
         mockMvc.perform(
@@ -104,7 +101,6 @@ class FilmControllerTest {
             .andExpect(status().isOk)
             .andExpect(content().string(""))
     }
-
 
     @Test
     fun `delete film should return 204 NO CONTENT`() {

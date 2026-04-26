@@ -1,0 +1,31 @@
+name: CI
+run-name: "${{ github.ref_name }} - ${{ github.event_name }} by @${{ github.actor }}"
+
+on:
+  push:
+    branches: [develop, main]
+    tags: ["v*"]
+  pull_request:
+    branches: [develop, main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build & Test
+    uses: ./.github/workflows/build.yaml
+    permissions:
+      contents: read
+
+  docker:
+    name: Docker
+    needs: build
+    uses: ./.github/workflows/docker.yaml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      push: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') }}
+    secrets: inherit

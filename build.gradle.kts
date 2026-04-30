@@ -15,6 +15,8 @@ plugins {
     jacoco
 }
 
+apply(plugin = "org.springframework.boot.aot")
+
 apply(from = "$rootDir/gradle/docker.gradle.kts")
 
 group = "com.project"

@@ -63,9 +63,10 @@ class FilmLibraryController(
     fun getAllFilmsInLibrary(
         @PathVariable userId: UUID,
     ): List<FilmResponse> {
-        val library = getFilmLibraryUseCase.getLibrary(
-            GetFilmLibraryQuery(userId = userId)
-        )
+        val library =
+            getFilmLibraryUseCase.getLibrary(
+                GetFilmLibraryQuery(userId = userId),
+            )
 
         val film = getFilmByIdUseCase.getById(library.filmId)
 
@@ -105,9 +106,10 @@ class FilmLibraryController(
     fun getAvailableFilms(
         @PathVariable userId: UUID,
     ): List<FilmResponse> {
-        val userLibrary = getFilmLibraryUseCase.getLibrary(
-            GetFilmLibraryQuery(userId = userId)
-        )
+        val userLibrary =
+            getFilmLibraryUseCase.getLibrary(
+                GetFilmLibraryQuery(userId = userId),
+            )
 
         val allFilms = getAllFilmsUseCase.getAll()
 

@@ -26,3 +26,11 @@ data class EditUserCommand(
 interface DeleteUserUseCase {
     fun delete(id: UUID)
 }
+
+interface GetUserByIdUseCase {
+    fun getById(id: UUID): User
+}
+
+interface GetAllUsersUseCase {
+    fun getAll(): List<User>
+}

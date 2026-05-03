@@ -2,10 +2,13 @@ package com.project.movienight.adapters.web
 
 import com.project.movienight.adapters.web.dto.request.CreateFilmLibraryRequest
 import com.project.movienight.adapters.web.dto.response.FilmLibraryResponse
+import com.project.movienight.adapters.web.dto.response.FilmResponse
 import com.project.movienight.application.ports.input.AddFilmToLibraryCommand
 import com.project.movienight.application.ports.input.AddFilmToLibraryUseCase
 import com.project.movienight.application.ports.input.CreateFilmLibraryCommand
 import com.project.movienight.application.ports.input.CreateFilmLibraryUseCase
+import com.project.movienight.application.ports.input.GetAllFilmsUseCase
+import com.project.movienight.application.ports.input.GetFilmByIdUseCase
 import com.project.movienight.application.ports.input.GetFilmLibraryQuery
 import com.project.movienight.application.ports.input.GetFilmLibraryUseCase
 import com.project.movienight.application.ports.input.RemoveFilmFromLibraryCommand
@@ -28,6 +31,8 @@ class FilmLibraryController(
     private val addFilmToLibraryUseCase: AddFilmToLibraryUseCase,
     private val removeFilmFromLibraryUseCase: RemoveFilmFromLibraryUseCase,
     private val getFilmLibraryUseCase: GetFilmLibraryUseCase,
+    private val getFilmByIdUseCase: GetFilmByIdUseCase,
+    private val getAllFilmsUseCase: GetAllFilmsUseCase,
 ) {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -53,6 +58,19 @@ class FilmLibraryController(
                 GetFilmLibraryQuery(userId = userId),
             ),
         )
+
+    @GetMapping("/films")
+    fun getAllFilmsInLibrary(
+        @PathVariable userId: UUID,
+    ): List<FilmResponse> {
+        val library = getFilmLibraryUseCase.getLibrary(
+            GetFilmLibraryQuery(userId = userId)
+        )
+
+        val film = getFilmByIdUseCase.getById(library.filmId)
+
+        return listOf(FilmResponse.fromDomain(film))
+    }
 
     @PostMapping("/films/{filmId}")
     @ResponseStatus(HttpStatus.CREATED)
@@ -81,5 +99,20 @@ class FilmLibraryController(
                 filmId = filmId,
             ),
         )
+    }
+
+    @GetMapping("/available-films")
+    fun getAvailableFilms(
+        @PathVariable userId: UUID,
+    ): List<FilmResponse> {
+        val userLibrary = getFilmLibraryUseCase.getLibrary(
+            GetFilmLibraryQuery(userId = userId)
+        )
+
+        val allFilms = getAllFilmsUseCase.getAll()
+
+        val availableFilms = allFilms.filter { it.id != userLibrary.filmId }
+
+        return availableFilms.map { FilmResponse.fromDomain(it) }
     }
 }

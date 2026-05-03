@@ -26,18 +26,18 @@ class UserService(
     DeleteUserUseCase,
     GetUserByIdUseCase,
     GetAllUsersUseCase {
-
     override fun create(command: CreateUserCommand): User {
         if (userConfig.isBlocked(command.name)) {
             throw BlockedValueException(target = "User", field = "name")
         }
 
-        val user = User(
-            id = idGenerator.generateId(),
-            name = command.name,
-            email = command.email,
-            library = null,
-        )
+        val user =
+            User(
+                id = idGenerator.generateId(),
+                name = command.name,
+                email = command.email,
+                library = null,
+            )
         return userRepository.save(user)
     }
 
@@ -59,9 +59,8 @@ class UserService(
         userRepository.deleteById(id)
     }
 
-    override fun getById(id: UUID): User {
-        return userRepository.findById(id) ?: throw EntityNotFoundException(entity = "User", id = id.toString())
-    }
+    override fun getById(id: UUID): User =
+        userRepository.findById(id) ?: throw EntityNotFoundException(entity = "User", id = id.toString())
 
     override fun getAll(): List<User> = userRepository.findAll()
 }

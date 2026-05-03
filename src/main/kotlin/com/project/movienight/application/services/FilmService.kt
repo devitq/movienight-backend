@@ -28,7 +28,6 @@ class FilmService(
     GetFilmByIdUseCase,
     GetAllFilmsUseCase,
     SearchFilmByTitleUseCase {
-
     override fun create(command: CreateFilmCommand): Film {
         if (filmConfig.isBlocked(command.title)) {
             throw BlockedValueException(target = "Film", field = "title")
@@ -37,15 +36,19 @@ class FilmService(
             throw BlockedValueException(target = "Film", field = "description")
         }
 
-        val film = Film(
-            id = idGenerator.generateId(),
-            title = command.title,
-            description = command.description,
-        )
+        val film =
+            Film(
+                id = idGenerator.generateId(),
+                title = command.title,
+                description = command.description,
+            )
         return filmRepository.save(film)
     }
 
-    override fun edit(id: UUID, command: EditFilmCommand): Film {
+    override fun edit(
+        id: UUID,
+        command: EditFilmCommand,
+    ): Film {
         if (filmConfig.isBlocked(command.title)) {
             throw BlockedValueException(target = "Film", field = "title")
         }
@@ -63,9 +66,8 @@ class FilmService(
         filmRepository.deleteById(id)
     }
 
-    override fun getById(id: UUID): Film {
-        return filmRepository.findById(id) ?: throw EntityNotFoundException(entity = "Film", id = id.toString())
-    }
+    override fun getById(id: UUID): Film =
+        filmRepository.findById(id) ?: throw EntityNotFoundException(entity = "Film", id = id.toString())
 
     override fun getAll(): List<Film> = filmRepository.findAll()
 

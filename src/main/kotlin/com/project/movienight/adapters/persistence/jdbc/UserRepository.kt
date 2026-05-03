@@ -1,6 +1,10 @@
 package com.project.movienight.adapters.persistence.jdbc
 
+import com.project.movienight.adapters.persistence.entity.UserEntity
+import com.project.movienight.adapters.persistence.entity.toDomain
+import com.project.movienight.adapters.persistence.entity.toEntity
 import com.project.movienight.application.ports.output.UserRepositoryPort
+import com.project.movienight.domain.model.AuthProvider
 import com.project.movienight.domain.model.User
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
@@ -11,8 +15,8 @@ import java.util.UUID
 class UserRepository(
     private val jdbc: JdbcTemplate,
 ) : UserRepositoryPort {
-    private val userRowMapper = { rs: ResultSet, _: Int ->
-        User(
+    private val userEntityRowMapper = { rs: ResultSet, _: Int ->
+        UserEntity(
             id = UUID.fromString(rs.getString("id")),
             name = rs.getString("name"),
             email = rs.getString("email"),
@@ -22,6 +26,7 @@ class UserRepository(
     }
 
     override fun save(user: User): User {
+        val entity = user.toEntity()
         val updatedRows =
             jdbc.update(
                 """
@@ -50,13 +55,13 @@ class UserRepository(
     }
 
     override fun findById(id: UUID): User? {
-        val users =
+        val entities =
             jdbc.query(
                 "SELECT id, name, email, password FROM users WHERE id = ?",
                 userRowMapper,
                 id,
             )
-        return users.firstOrNull()
+        return entities.firstOrNull()?.toDomain()
     }
 
     override fun findByEmail(email: String): User? {

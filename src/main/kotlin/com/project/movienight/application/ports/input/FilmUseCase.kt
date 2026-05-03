@@ -27,3 +27,15 @@ data class EditFilmCommand(
 interface DeleteFilmUseCase {
     fun delete(id: UUID)
 }
+
+interface GetFilmByIdUseCase {
+    fun getById(id: UUID): Film
+}
+
+interface GetAllFilmsUseCase {
+    fun getAll(): List<Film>
+}
+
+interface SearchFilmByTitleUseCase {
+    fun searchByTitle(title: String): Film?
+}

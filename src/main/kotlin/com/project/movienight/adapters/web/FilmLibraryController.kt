@@ -64,9 +64,10 @@ class FilmLibraryController(
     fun getAllFilmsInLibrary(
         @PathVariable userId: UUID,
     ): List<FilmResponse> {
-        val library = getFilmLibraryUseCase.getLibrary(
-            GetFilmLibraryQuery(userId = userId),
-        )
+        val library =
+            getFilmLibraryUseCase.getLibrary(
+                GetFilmLibraryQuery(userId = userId),
+            )
         val film = getFilmByIdUseCase.getById(library.filmId)
         return listOf(FilmResponse.fromDomain(film))
     }
@@ -102,21 +103,23 @@ class FilmLibraryController(
     fun getAvailableFilms(
         @PathVariable userId: UUID,
     ): List<FilmResponse> {
-        val userLibrary = try {
-            getFilmLibraryUseCase.getLibrary(
-                GetFilmLibraryQuery(userId = userId),
-            )
-        } catch (e: EntityNotFoundException) {
-            null
-        }
+        val userLibrary =
+            try {
+                getFilmLibraryUseCase.getLibrary(
+                    GetFilmLibraryQuery(userId = userId),
+                )
+            } catch (e: EntityNotFoundException) {
+                null
+            }
 
         val allFilms = getAllFilmsUseCase.getAll()
 
-        val availableFilms = if (userLibrary != null) {
-            allFilms.filter { it.id != userLibrary.filmId }
-        } else {
-            allFilms
-        }
+        val availableFilms =
+            if (userLibrary != null) {
+                allFilms.filter { it.id != userLibrary.filmId }
+            } else {
+                allFilms
+            }
 
         return availableFilms.map { FilmResponse.fromDomain(it) }
     }

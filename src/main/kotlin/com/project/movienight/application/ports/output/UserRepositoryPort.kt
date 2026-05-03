@@ -1,5 +1,6 @@
 package com.project.movienight.application.ports.output
 
+import com.project.movienight.domain.model.AuthProvider
 import com.project.movienight.domain.model.User
 import java.util.UUID
 
@@ -11,4 +12,9 @@ interface UserRepositoryPort {
     fun findAll(): List<User>
 
     fun deleteById(id: UUID)
+
+    fun findByProviderAndProviderId(
+        provider: AuthProvider,
+        providerId: String,
+    ): User?
 }

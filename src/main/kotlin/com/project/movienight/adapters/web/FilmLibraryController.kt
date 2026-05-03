@@ -74,10 +74,12 @@ class FilmLibraryController(
     fun removeFilm(
         @PathVariable userId: UUID,
         @PathVariable filmId: UUID,
-    ) = removeFilmFromLibraryUseCase.removeFilm(
-        RemoveFilmFromLibraryCommand(
-            userId = userId,
-            filmId = filmId,
-        ),
-    )
+    ) {
+        removeFilmFromLibraryUseCase.removeFilm(
+            RemoveFilmFromLibraryCommand(
+                userId = userId,
+                filmId = filmId,
+            ),
+        )
+    }
 }

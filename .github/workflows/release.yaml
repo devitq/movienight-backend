@@ -1,0 +1,58 @@
+name: Release & Notify
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "Tag name, e.g. v1.2.3"
+        type: string
+        required: true
+      image-digest:
+        description: "Docker image digest from docker job"
+        type: string
+        required: false
+        default: ""
+    secrets:
+      TELEGRAM_BOT_TOKEN:
+        required: true
+      TELEGRAM_CHAT_ID:
+        required: true
+
+jobs:
+  release:
+    name: GitHub Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if gh release view "${{ inputs.version }}" >/dev/null 2>&1; then
+            echo "Release ${{ inputs.version }} already exists. Skipping creation."
+          else
+            gh release create "${{ inputs.version }}" \
+              --generate-notes \
+              --title "${{ inputs.version }}"
+          fi
+
+      - name: Send Telegram notification
+        env:
+          TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          VERSION: ${{ inputs.version }}
+          REPO: ${{ github.repository }}
+          DIGEST: ${{ inputs.image-digest }}
+        run: |
+          RELEASE_URL="https://github.com/${REPO}/releases/tag/${VERSION}"
+          MSG="*${REPO}* - released *${VERSION}*"
+          MSG="${MSG}%0A🔗 [Release notes](${RELEASE_URL})"
+          if [ -n "${DIGEST}" ]; then
+            MSG="${MSG}%0AImage: \`ghcr.io/${REPO}@${DIGEST}\`"
+          fi
+          curl -sf -X POST \
+            "https://api.telegram.org/bot${TOKEN}/sendMessage" \
+            -d "chat_id=${CHAT_ID}" \
+            -d "parse_mode=Markdown" \
+            -d "text=${MSG}"

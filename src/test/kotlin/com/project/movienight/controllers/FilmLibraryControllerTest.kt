@@ -153,7 +153,7 @@ class FilmLibraryControllerTest {
 
         val responseBody = result.response.contentAsString
         val films = objectMapper.readTree(responseBody)
-        val returnedIds = (0 until films.size()).map { films[it].get("id").asText() }
+        val returnedIds = films.toList().map { it.get("id").asText() }
         assert(!returnedIds.contains(film1Id)) { "Film in library should not appear in available films" }
         assert(returnedIds.contains(film2Id)) { "Film not in library should appear in available films" }
     }
@@ -198,7 +198,7 @@ class FilmLibraryControllerTest {
 
         val responseBody = result.response.contentAsString
         val films = objectMapper.readTree(responseBody)
-        val returnedIds = (0 until films.size()).map { films[it].get("id").asText() }
+        val returnedIds = films.toList().map { it.get("id").asText() }
         assert(returnedIds.contains(filmId)) { "Film should appear in available films when user has no library" }
     }
 }

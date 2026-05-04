@@ -62,11 +62,12 @@ class FilmRepository(
         )
 
     override fun findByTitle(title: String): Film? {
-        val films = jdbc.query(
-            "SELECT id, title, description FROM films WHERE title = ?",
-            filmRowMapper,
-            title
-        )
+        val films =
+            jdbc.query(
+                "SELECT id, title, description FROM films WHERE title = ?",
+                filmRowMapper,
+                title,
+            )
         return films.firstOrNull()
     }
 

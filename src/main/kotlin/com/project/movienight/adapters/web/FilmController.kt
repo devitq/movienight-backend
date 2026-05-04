@@ -56,10 +56,11 @@ class FilmController(
         FilmResponse.fromDomain(
             editFilmUseCase.edit(
                 id = id,
-                command = EditFilmCommand(
-                    title = request.title,
-                    description = request.description,
-                ),
+                command =
+                    EditFilmCommand(
+                        title = request.title,
+                        description = request.description,
+                    ),
             ),
         )
 
@@ -72,16 +73,13 @@ class FilmController(
     @GetMapping("/{id}")
     fun getById(
         @PathVariable id: UUID,
-    ): FilmResponse =
-        FilmResponse.fromDomain(getFilmByIdUseCase.getById(id))
+    ): FilmResponse = FilmResponse.fromDomain(getFilmByIdUseCase.getById(id))
 
     @GetMapping("/search")
     fun searchByTitle(
         @RequestParam title: String,
-    ): FilmResponse? =
-        searchFilmByTitleUseCase.searchByTitle(title)?.let { FilmResponse.fromDomain(it) }
+    ): FilmResponse? = searchFilmByTitleUseCase.searchByTitle(title)?.let { FilmResponse.fromDomain(it) }
 
     @GetMapping
-    fun getAll(): List<FilmResponse> =
-        getAllFilmsUseCase.getAll().map { FilmResponse.fromDomain(it) }
+    fun getAll(): List<FilmResponse> = getAllFilmsUseCase.getAll().map { FilmResponse.fromDomain(it) }
 }

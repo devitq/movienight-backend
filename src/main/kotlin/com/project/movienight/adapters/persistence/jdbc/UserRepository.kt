@@ -20,8 +20,9 @@ class UserRepository(
             id = UUID.fromString(rs.getString("id")),
             name = rs.getString("name"),
             email = rs.getString("email"),
-            password = rs.getString("password"),
-            library = null,
+            provider = rs.getString("provider"),
+            providerId = rs.getString("provider_id"),
+            createdAt = rs.getTimestamp("created_at").toLocalDateTime(),
         )
     }
 
@@ -31,24 +32,25 @@ class UserRepository(
             jdbc.update(
                 """
                 UPDATE users
-                SET name = ?, email = ?, password = ?
+                SET name = ?, email = ?
                 WHERE id = ?
                 """.trimIndent(),
-                user.name,
-                user.email,
-                user.password,
-                user.id,
+                entity.name,
+                entity.email,
+                entity.id,
             )
         if (updatedRows == 0) {
             jdbc.update(
                 """
-                INSERT INTO users (id, name, email, password)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO users (id, name, email, provider, provider_id, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """.trimIndent(),
-                user.id,
-                user.name,
-                user.email,
-                user.password,
+                entity.id,
+                entity.name,
+                entity.email,
+                entity.provider,
+                entity.providerId,
+                entity.createdAt,
             )
         }
         return user
@@ -57,69 +59,48 @@ class UserRepository(
     override fun findById(id: UUID): User? {
         val entities =
             jdbc.query(
-                "SELECT id, name, email, password FROM users WHERE id = ?",
-                userRowMapper,
+                "SELECT id, name, email, provider, provider_id, created_at FROM users WHERE id = ?",
+                userEntityRowMapper,
                 id,
             )
         return entities.firstOrNull()?.toDomain()
     }
 
     override fun findByEmail(email: String): User? {
-        val users = jdbc.query(
-            "SELECT id, name, email, password FROM users WHERE email = ?",
-            userRowMapper,
-            email,
-        )
-        return users.firstOrNull()
+        val entities =
+            jdbc.query(
+                "SELECT id, name, email, provider, provider_id, created_at FROM users WHERE email = ?",
+                userEntityRowMapper,
+                email,
+            )
+        return entities.firstOrNull()?.toDomain()
     }
 
     override fun findAll(): List<User> =
-        jdbc.query(
-            "SELECT id, name, email, password FROM users",
-            userRowMapper,
-        )
+        jdbc
+            .query(
+                "SELECT id, name, email, provider, provider_id, created_at FROM users",
+                userEntityRowMapper,
+            ).map { it.toDomain() }
 
     override fun deleteById(id: UUID) {
         jdbc.update("DELETE FROM users WHERE id = ?", id)
     }
 
-    override fun saveWithOAuth2(user: User, provider: String, providerId: String): User {
-        val updatedRows = jdbc.update("""
-            UPDATE users
-            SET name = ?, email = ?, password = ?, provider = ?, provider_id = ?
-            WHERE id = ?
-        """.trimIndent(),
-        user.name,
-        user.email,
-        user.password,
-        provider,
-        providerId,
-        user.id,
-        )
-        if (updatedRows == 0) {
-            jdbc.update(
+    override fun findByProviderAndProviderId(
+        provider: AuthProvider,
+        providerId: String,
+    ): User? {
+        val entities =
+            jdbc.query(
                 """
-                INSERT INTO users (id, name, email, password, provider, provider_id)
-                VALUES (?, ?, ?, ?, ?, ?)
+                SELECT id, name, email, provider, provider_id, created_at FROM users
+                WHERE provider = ? AND provider_id = ?
                 """.trimIndent(),
-                user.id,
-                user.name,
-                user.email,
-                user.password,
-                provider,
+                userEntityRowMapper,
+                provider.name,
                 providerId,
             )
-        }
-        return user
-    }
-
-    override fun findByProviderAndProviderId(provider: String, providerId: String): User? {
-        val users = jdbc.query(
-            "SELECT id, name, email, password FROM users WHERE provider = ? AND provider_id = ?",
-            userRowMapper,
-            provider,
-            providerId,
-        )
-        return users.firstOrNull()
+        return entities.firstOrNull()?.toDomain()
     }
 }

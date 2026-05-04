@@ -3,16 +3,14 @@ package com.project.movienight.adapters.security
 import com.project.movienight.application.ports.input.security.OAuth2UserInfo
 
 class VkOAuth2UserInfo(
-    private val attributes: Map<String, Any>
+    private val attributes: Map<String, Any>,
 ) : OAuth2UserInfo {
-
-    override fun getProviderId(): String {
-        return (attributes["response"] as? List<*>)
+    override fun getProviderId(): String =
+        (attributes["response"] as? List<*>)
             ?.firstOrNull()
             ?.let { it as? Map<*, *> }
             ?.get("id")
             ?.toString() ?: ""
-    }
 
     override fun getEmail(): String = attributes["email"]?.toString() ?: ""
 

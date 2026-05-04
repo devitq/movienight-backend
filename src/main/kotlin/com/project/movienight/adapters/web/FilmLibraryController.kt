@@ -68,6 +68,7 @@ class FilmLibraryController(
             getFilmLibraryUseCase.getLibrary(
                 GetFilmLibraryQuery(userId = userId),
             )
+
         val film = getFilmByIdUseCase.getById(library.filmId)
         return listOf(FilmResponse.fromDomain(film))
     }

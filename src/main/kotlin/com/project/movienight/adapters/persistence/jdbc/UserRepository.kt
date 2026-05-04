@@ -71,6 +71,16 @@ class UserRepository(
         return entities.firstOrNull()?.toDomain()
     }
 
+    override fun findByEmail(email: String): User? {
+        val entities =
+            jdbc.query(
+                "SELECT id, name, email, password, provider, provider_id, created_at FROM users WHERE email = ?",
+                userEntityRowMapper,
+                email,
+            )
+        return entities.firstOrNull()?.toDomain()
+    }
+
     override fun findAll(): List<User> =
         jdbc
             .query(

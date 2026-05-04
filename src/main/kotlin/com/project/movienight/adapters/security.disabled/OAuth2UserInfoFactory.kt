@@ -5,8 +5,10 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException
 import org.springframework.security.oauth2.core.user.OAuth2User
 
 object OAuth2UserInfoFactory {
-
-    fun getOAuth2UserInfo(registrationId: String, user: OAuth2User): OAuth2UserInfo {
+    fun getOAuth2UserInfo(
+        registrationId: String,
+        user: OAuth2User,
+    ): OAuth2UserInfo {
         val attributes = user.attributes
 
         return when (registrationId.lowercase()) {

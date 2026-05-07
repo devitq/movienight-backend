@@ -49,8 +49,8 @@ dependencies {
 
     implementation(libs.spring.grpc.starter)
     implementation(libs.grpc.services)
-    // Temporarily disabled due to OAuth2 configuration issues
-    // implementation(libs.spring.boot.starter.oauth2.client)
+
+    implementation(libs.spring.boot.starter.oauth2.client)
 
     runtimeOnly(libs.micrometer.registry.prometheus)
     runtimeOnly(libs.h2)

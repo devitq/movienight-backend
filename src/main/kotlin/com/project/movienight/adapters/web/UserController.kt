@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
+//import com.project.movienight.adapters.security.UserPrincipal
 import java.util.UUID
 
 @RestController
@@ -73,4 +74,12 @@ class UserController(
     fun delete(
         @PathVariable id: UUID,
     ) = deleteUserUseCase.delete(id)
+
+    /*
+    @GetMapping("/me")
+    fun getCurrentUser(principal: UserPrincipal): UserResponse =
+        UserResponse.fromDomain(
+            getUserByIdUseCase.getById(principal.getId())
+        )
+     */
 }

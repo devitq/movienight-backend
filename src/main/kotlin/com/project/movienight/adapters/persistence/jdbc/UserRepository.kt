@@ -9,6 +9,7 @@ import com.project.movienight.domain.model.User
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
 import java.sql.ResultSet
+import java.time.LocalDateTime
 import java.util.UUID
 
 @Repository
@@ -27,18 +28,32 @@ class UserRepository(
     }
 
     override fun save(user: User): User {
-        val entity = user.toEntity()
-        val updatedRows =
-            jdbc.update(
-                """
-                UPDATE users
-                SET name = ?, email = ?
-                WHERE id = ?
-                """.trimIndent(),
-                entity.name,
-                entity.email,
-                entity.id,
+        val existingUser = findById(user.id)
+
+        val entity = if (existingUser != null) {
+            val existingEntity = existingUser.toEntity()
+            user.toEntity(
+                provider = existingEntity.provider?.let { AuthProvider.valueOf(it) },
+                providerId = existingEntity.providerId,
+                createdAt = existingEntity.createdAt
             )
+        } else {
+            user.toEntity()
+        }
+
+        val updatedRows = jdbc.update(
+            """
+            UPDATE users
+            SET name = ?, email = ?, provider = ?, provider_id = ?
+            WHERE id = ?
+            """.trimIndent(),
+            entity.name,
+            entity.email,
+            entity.provider,
+            entity.providerId,
+            entity.id,
+        )
+
         if (updatedRows == 0) {
             jdbc.update(
                 """
@@ -57,31 +72,28 @@ class UserRepository(
     }
 
     override fun findById(id: UUID): User? {
-        val entities =
-            jdbc.query(
-                "SELECT id, name, email, provider, provider_id, created_at FROM users WHERE id = ?",
-                userEntityRowMapper,
-                id,
-            )
+        val entities = jdbc.query(
+            "SELECT id, name, email, provider, provider_id, created_at FROM users WHERE id = ?",
+            userEntityRowMapper,
+            id,
+        )
         return entities.firstOrNull()?.toDomain()
     }
 
     override fun findByEmail(email: String): User? {
-        val entities =
-            jdbc.query(
-                "SELECT id, name, email, provider, provider_id, created_at FROM users WHERE email = ?",
-                userEntityRowMapper,
-                email,
-            )
+        val entities = jdbc.query(
+            "SELECT id, name, email, provider, provider_id, created_at FROM users WHERE email = ?",
+            userEntityRowMapper,
+            email,
+        )
         return entities.firstOrNull()?.toDomain()
     }
 
     override fun findAll(): List<User> =
-        jdbc
-            .query(
-                "SELECT id, name, email, provider, provider_id, created_at FROM users",
-                userEntityRowMapper,
-            ).map { it.toDomain() }
+        jdbc.query(
+            "SELECT id, name, email, provider, provider_id, created_at FROM users",
+            userEntityRowMapper,
+        ).map { it.toDomain() }
 
     override fun deleteById(id: UUID) {
         jdbc.update("DELETE FROM users WHERE id = ?", id)
@@ -91,16 +103,16 @@ class UserRepository(
         provider: AuthProvider,
         providerId: String,
     ): User? {
-        val entities =
-            jdbc.query(
-                """
-                SELECT id, name, email, provider, provider_id, created_at FROM users
-                WHERE provider = ? AND provider_id = ?
-                """.trimIndent(),
-                userEntityRowMapper,
-                provider.name,
-                providerId,
-            )
+        val entities = jdbc.query(
+            """
+            SELECT id, name, email, provider, provider_id, created_at
+            FROM users
+            WHERE provider = ? AND provider_id = ?
+            """.trimIndent(),
+            userEntityRowMapper,
+            provider.name,
+            providerId,
+        )
         return entities.firstOrNull()?.toDomain()
     }
 }

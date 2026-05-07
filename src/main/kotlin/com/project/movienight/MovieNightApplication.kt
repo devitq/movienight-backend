@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAu
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan
 import org.springframework.boot.runApplication
 
-@SpringBootApplication(exclude = [OAuth2ClientAutoConfiguration::class])
+@SpringBootApplication
 @ConfigurationPropertiesScan("com.project.movienight.config")
 class MovieNightApplication
 

@@ -9,7 +9,7 @@ import com.project.movienight.domain.model.User
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
 import java.sql.ResultSet
-import java.time.LocalDateTime
+//import java.time.LocalDateTime
 import java.util.UUID
 
 @Repository

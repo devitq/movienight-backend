@@ -59,7 +59,7 @@ class FilmControllerSearchTest {
     }
 
     @Test
-    fun `search returns empty body when title is missing`() {
+    fun `search returns 404 when title is not found`() {
         val title = "Unknown Title"
 
         every { searchFilmByTitleUseCase.searchByTitle(title) } returns null
@@ -68,7 +68,7 @@ class FilmControllerSearchTest {
             .get("/api/films/search") {
                 param("title", title)
             }.andExpect {
-                status { isOk() }
+                status { isNotFound() }
                 content { string("") }
             }
 

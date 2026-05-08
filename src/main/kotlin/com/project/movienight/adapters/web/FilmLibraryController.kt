@@ -110,13 +110,11 @@ class FilmLibraryController(
                 getFilmLibraryUseCase.getLibrary(
                     GetFilmLibraryQuery(userId = userId),
                 )
-            }.getOrElse { exception ->
-                if (exception is EntityNotFoundException) {
-                    null
-                } else {
+            }.onFailure { exception ->
+                if (exception !is EntityNotFoundException) {
                     throw exception
                 }
-            }
+            }.getOrNull()
 
         val allFilms = getAllFilmsUseCase.getAll()
 

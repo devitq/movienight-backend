@@ -57,10 +57,11 @@ class FilmController(
         FilmResponse.fromDomain(
             editFilmUseCase.edit(
                 id = id,
-                command = EditFilmCommand(
-                    title = request.title,
-                    description = request.description,
-                ),
+                command =
+                    EditFilmCommand(
+                        title = request.title,
+                        description = request.description,
+                    ),
             ),
         )
 

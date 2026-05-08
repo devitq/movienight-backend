@@ -46,14 +46,12 @@ class UserController(
         )
 
     @GetMapping
-    fun getAll(): List<UserResponse> =
-        getAllUsersUseCase.getAll().map { UserResponse.fromDomain(it) }
+    fun getAll(): List<UserResponse> = getAllUsersUseCase.getAll().map { UserResponse.fromDomain(it) }
 
     @GetMapping("/{id}")
     fun getById(
         @PathVariable id: UUID,
-    ): UserResponse =
-        UserResponse.fromDomain(getUserByIdUseCase.getById(id))
+    ): UserResponse = UserResponse.fromDomain(getUserByIdUseCase.getById(id))
 
     @PatchMapping("/{id}")
     fun edit(
@@ -63,9 +61,10 @@ class UserController(
         UserResponse.fromDomain(
             editUserUseCase.edit(
                 id = id,
-                command = EditUserCommand(
-                    name = request.name,
-                ),
+                command =
+                    EditUserCommand(
+                        name = request.name,
+                    ),
             ),
         )
 

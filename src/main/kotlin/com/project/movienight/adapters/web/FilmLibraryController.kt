@@ -104,12 +104,16 @@ class FilmLibraryController(
         @PathVariable userId: UUID,
     ): List<FilmResponse> {
         val userLibrary =
-            try {
+            runCatching {
                 getFilmLibraryUseCase.getLibrary(
                     GetFilmLibraryQuery(userId = userId),
                 )
-            } catch (e: EntityNotFoundException) {
-                null
+            }.getOrElse { exception ->
+                if (exception is EntityNotFoundException) {
+                    null
+                } else {
+                    throw exception
+                }
             }
 
         val allFilms = getAllFilmsUseCase.getAll()

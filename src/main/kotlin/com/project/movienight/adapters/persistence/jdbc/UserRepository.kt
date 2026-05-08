@@ -69,10 +69,11 @@ class UserRepository(
     }
 
     override fun findAll(): List<User> =
-        jdbc.query(
-            "SELECT id, name, email, provider, provider_id, created_at FROM users",
-            userEntityRowMapper,
-        ).map { it.toDomain() }
+        jdbc
+            .query(
+                "SELECT id, name, email, provider, provider_id, created_at FROM users",
+                userEntityRowMapper,
+            ).map { it.toDomain() }
 
     override fun deleteById(id: UUID) {
         jdbc.update("DELETE FROM users WHERE id = ?", id)
@@ -84,7 +85,11 @@ class UserRepository(
     ): User? {
         val entities =
             jdbc.query(
-                "SELECT id, name, email, provider, provider_id, created_at FROM users WHERE provider = ? AND provider_id = ?",
+                """
+                SELECT id, name, email, provider, provider_id, created_at
+                FROM users
+                WHERE provider = ? AND provider_id = ?
+                """.trimIndent(),
                 userEntityRowMapper,
                 provider.name,
                 providerId,

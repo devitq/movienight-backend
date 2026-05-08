@@ -36,15 +36,19 @@ class FilmService(
             throw BlockedValueException(target = "Film", field = "description")
         }
 
-        val film = Film(
-            id = idGenerator.generateId(),
-            title = command.title,
-            description = command.description,
-        )
+        val film =
+            Film(
+                id = idGenerator.generateId(),
+                title = command.title,
+                description = command.description,
+            )
         return filmRepository.save(film)
     }
 
-    override fun edit(id: UUID, command: EditFilmCommand): Film {
+    override fun edit(
+        id: UUID,
+        command: EditFilmCommand,
+    ): Film {
         if (filmConfig.isBlocked(command.title)) {
             throw BlockedValueException(target = "Film", field = "title")
         }

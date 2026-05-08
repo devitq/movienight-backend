@@ -12,6 +12,7 @@ import com.project.movienight.application.ports.input.GetAllFilmsUseCase
 import com.project.movienight.application.ports.input.GetFilmByIdUseCase
 import com.project.movienight.application.ports.input.SearchFilmByTitleUseCase
 import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
@@ -75,11 +76,18 @@ class FilmController(
         @PathVariable id: UUID,
     ): FilmResponse = FilmResponse.fromDomain(getFilmByIdUseCase.getById(id))
 
+    @GetMapping
+    fun getAll(): List<FilmResponse> = getAllFilmsUseCase.getAll().map { FilmResponse.fromDomain(it) }
+
     @GetMapping("/search")
     fun searchByTitle(
         @RequestParam title: String,
-    ): FilmResponse? = searchFilmByTitleUseCase.searchByTitle(title)?.let { FilmResponse.fromDomain(it) }
-
-    @GetMapping
-    fun getAll(): List<FilmResponse> = getAllFilmsUseCase.getAll().map { FilmResponse.fromDomain(it) }
+    ): ResponseEntity<FilmResponse> {
+        val film = searchFilmByTitleUseCase.searchByTitle(title)
+        return if (film != null) {
+            ResponseEntity.ok(FilmResponse.fromDomain(film))
+        } else {
+            ResponseEntity.notFound().build()
+        }
+    }
 }

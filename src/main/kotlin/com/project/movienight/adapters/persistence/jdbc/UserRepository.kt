@@ -86,7 +86,8 @@ class UserRepository(
         val entities =
             jdbc.query(
                 """
-                SELECT id, name, email, provider, provider_id, created_at FROM users
+                SELECT id, name, email, provider, provider_id, created_at
+                FROM users
                 WHERE provider = ? AND provider_id = ?
                 """.trimIndent(),
                 userEntityRowMapper,

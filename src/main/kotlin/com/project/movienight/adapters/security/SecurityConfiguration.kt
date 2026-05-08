@@ -18,22 +18,22 @@ class SecurityConfiguration(
                 oauth2
                     .userInfoEndpoint { userInfo ->
                         userInfo.userService(customOAuth2UserService)
-                    }
-                    .defaultSuccessUrl("/api/users/me", true)
-            }
-            .authorizeHttpRequests { auth ->
+                    }.defaultSuccessUrl("/api/users/me", true)
+            }.authorizeHttpRequests { auth ->
                 auth
-                    .requestMatchers("/", "/login/**", "/oauth2/**", "/h2-console/**", "/actuator/health").permitAll()
-                    .requestMatchers("/api/users/me").authenticated()
-                    .requestMatchers("/api/**").authenticated()
-                    .anyRequest().authenticated()
-            }
-            .headers { headers ->
+                    .requestMatchers("/", "/login/**", "/oauth2/**", "/h2-console/**", "/actuator/health")
+                    .permitAll()
+                    .requestMatchers("/api/users/me")
+                    .authenticated()
+                    .requestMatchers("/api/**")
+                    .authenticated()
+                    .anyRequest()
+                    .authenticated()
+            }.headers { headers ->
                 headers.frameOptions { frameOptions ->
                     frameOptions.sameOrigin()
                 }
-            }
-            .csrf { csrf ->
+            }.csrf { csrf ->
                 csrf.disable()
             }
 

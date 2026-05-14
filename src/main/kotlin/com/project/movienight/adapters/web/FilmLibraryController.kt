@@ -13,6 +13,7 @@ import com.project.movienight.application.ports.input.GetFilmLibraryQuery
 import com.project.movienight.application.ports.input.GetFilmLibraryUseCase
 import com.project.movienight.application.ports.input.RemoveFilmFromLibraryCommand
 import com.project.movienight.application.ports.input.RemoveFilmFromLibraryUseCase
+import com.project.movienight.domain.exception.EntityNotFoundException
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
@@ -67,9 +68,7 @@ class FilmLibraryController(
             getFilmLibraryUseCase.getLibrary(
                 GetFilmLibraryQuery(userId = userId),
             )
-
         val film = getFilmByIdUseCase.getById(library.filmId)
-
         return listOf(FilmResponse.fromDomain(film))
     }
 
@@ -93,25 +92,38 @@ class FilmLibraryController(
     fun removeFilm(
         @PathVariable userId: UUID,
         @PathVariable filmId: UUID,
-    ) = removeFilmFromLibraryUseCase.removeFilm(
-        RemoveFilmFromLibraryCommand(
-            userId = userId,
-            filmId = filmId,
-        ),
-    )
+    ) {
+        removeFilmFromLibraryUseCase.removeFilm(
+            RemoveFilmFromLibraryCommand(
+                userId = userId,
+                filmId = filmId,
+            ),
+        )
+    }
 
     @GetMapping("/available-films")
     fun getAvailableFilms(
         @PathVariable userId: UUID,
     ): List<FilmResponse> {
         val userLibrary =
-            getFilmLibraryUseCase.getLibrary(
-                GetFilmLibraryQuery(userId = userId),
-            )
+            runCatching {
+                getFilmLibraryUseCase.getLibrary(
+                    GetFilmLibraryQuery(userId = userId),
+                )
+            }.onFailure { exception ->
+                if (exception !is EntityNotFoundException) {
+                    throw exception
+                }
+            }.getOrNull()
 
         val allFilms = getAllFilmsUseCase.getAll()
 
-        val availableFilms = allFilms.filter { it.id != userLibrary.filmId }
+        val availableFilms =
+            if (userLibrary != null) {
+                allFilms.filter { it.id != userLibrary.filmId }
+            } else {
+                allFilms
+            }
 
         return availableFilms.map { FilmResponse.fromDomain(it) }
     }

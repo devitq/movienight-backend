@@ -15,8 +15,7 @@ plugins {
     jacoco
 }
 
-// Temporarily disabled due to OAuth2 AOT processing issues
-// apply(plugin = "org.springframework.boot.aot")
+apply(plugin = "org.springframework.boot.aot")
 
 apply(from = "$rootDir/gradle/docker.gradle.kts")
 
@@ -73,7 +72,6 @@ tasks.withType<KotlinCompile> {
         jvmTarget.set(JvmTarget.JVM_21)
         allWarningsAsErrors.set(false)
     }
-    exclude("**/security.disabled/**")
 }
 
 tasks.withType<JavaCompile> {
@@ -156,7 +154,6 @@ ktlint {
     filter {
         exclude("**/build/**")
         exclude("**/generated/**")
-        exclude("**/security.disabled/**")
     }
 }
 
@@ -170,7 +167,6 @@ detekt {
 
 tasks.withType<Detekt>().configureEach {
     jvmTarget = "21"
-    exclude("**/security.disabled/**")
     reports {
         html.required.set(true)
         xml.required.set(true)

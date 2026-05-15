@@ -31,7 +31,6 @@ java {
 
 dependencies {
     implementation(platform(libs.sentry.bom))
-    implementation(platform(libs.spring.grpc.bom))
 
     implementation(libs.spring.boot.starter.web)
     implementation(libs.spring.boot.starter.actuator)
@@ -47,9 +46,6 @@ dependencies {
     implementation(libs.opentelemetry.exporter.otlp)
     implementation(libs.sentry.spring.boot.starter)
 
-    implementation(libs.spring.grpc.starter)
-    implementation(libs.grpc.services)
-
     implementation(libs.spring.boot.starter.oauth2.client)
 
     runtimeOnly(libs.micrometer.registry.prometheus)
@@ -60,7 +56,6 @@ dependencies {
 
     testImplementation(libs.spring.boot.starter.test)
     testImplementation(libs.kotlin.test.junit5)
-    testImplementation(libs.spring.grpc.test)
     testImplementation(libs.mockk)
     testRuntimeOnly(libs.junit.platform.launcher)
 }

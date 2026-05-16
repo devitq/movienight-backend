@@ -27,7 +27,20 @@ class UserRepository(
     }
 
     override fun save(user: User): User {
-        val entity = user.toEntity()
+        val existingUser = findById(user.id)
+
+        val entity =
+            if (existingUser != null) {
+                val existingEntity = existingUser.toEntity()
+                user.toEntity(
+                    provider = existingEntity.provider?.let { AuthProvider.valueOf(it) },
+                    providerId = existingEntity.providerId,
+                    createdAt = existingEntity.createdAt,
+                )
+            } else {
+                user.toEntity()
+            }
+
         val updatedRows =
             jdbc.update(
                 """
@@ -41,6 +54,7 @@ class UserRepository(
                 entity.providerId,
                 entity.id,
             )
+
         if (updatedRows == 0) {
             jdbc.update(
                 """
@@ -64,6 +78,16 @@ class UserRepository(
                 "SELECT id, name, email, provider, provider_id, created_at FROM users WHERE id = ?",
                 userEntityRowMapper,
                 id,
+            )
+        return entities.firstOrNull()?.toDomain()
+    }
+
+    override fun findByEmail(email: String): User? {
+        val entities =
+            jdbc.query(
+                "SELECT id, name, email, provider, provider_id, created_at FROM users WHERE email = ?",
+                userEntityRowMapper,
+                email,
             )
         return entities.firstOrNull()?.toDomain()
     }

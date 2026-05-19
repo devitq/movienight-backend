@@ -7,4 +7,6 @@ data class User(
     val name: String,
     val email: String,
     val library: FilmLibrary?,
+    val preferences: UserPreferences? = null,
+    val jellyfinUserId: String? = null,
 )

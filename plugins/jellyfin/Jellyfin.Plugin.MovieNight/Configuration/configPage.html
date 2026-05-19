@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MovieNight</title>
+</head>
+<body>
+    <div
+        id="MovieNightConfigPage"
+        data-role="page"
+        class="page type-interior pluginConfigurationPage"
+        data-controller="__plugin/MovieNight.js">
+        <div data-role="content">
+            <div class="content-primary">
+                <form id="MovieNightConfigForm">
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="BackendBaseUrl">Backend URL</label>
+                        <input is="emby-input" id="BackendBaseUrl" name="BackendBaseUrl" type="url" placeholder="http://localhost:8080" />
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="ApiToken">Plugin token</label>
+                        <input is="emby-input" id="ApiToken" name="ApiToken" type="password" autocomplete="new-password" />
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="SyncIntervalMinutes">Sync interval minutes</label>
+                        <input is="emby-input" id="SyncIntervalMinutes" name="SyncIntervalMinutes" type="number" min="1" max="1440" />
+                    </div>
+
+                    <label class="checkboxContainer">
+                        <input id="Enabled" name="Enabled" type="checkbox" is="emby-checkbox" />
+                        <span>Enable MovieNight integration</span>
+                    </label>
+
+                    <label class="checkboxContainer">
+                        <input id="EnablePeriodicSync" name="EnablePeriodicSync" type="checkbox" is="emby-checkbox" />
+                        <span>Enable periodic backend sync</span>
+                    </label>
+
+                    <label class="checkboxContainer">
+                        <input id="EnablePlaybackEvents" name="EnablePlaybackEvents" type="checkbox" is="emby-checkbox" />
+                        <span>Send playback stop events</span>
+                    </label>
+
+                    <div>
+                        <button is="emby-button" type="submit" class="raised button-submit block">
+                            <span>Save</span>
+                        </button>
+                    </div>
+
+                    <div>
+                        <button is="emby-button" type="button" id="TestConnection" class="raised block">
+                            <span>Test connection</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

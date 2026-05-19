@@ -23,20 +23,22 @@ class JellyfinEventRepository(
         jellyfinItemId: String?,
         payload: String?,
     ) {
-        val sql = """
+        val sql =
+            """
             INSERT INTO jellyfin_events(event_id, server_id, event_type, occurred_at, jellyfin_user_id, jellyfin_item_id, payload)
             VALUES (:eventId, :serverId, :eventType, :occurredAt, :jellyfinUserId, :jellyfinItemId, cast(:payload as jsonb))
             ON CONFLICT (event_id) DO NOTHING
-        """.trimIndent()
+            """.trimIndent()
 
-        val params = MapSqlParameterSource()
-            .addValue("eventId", eventId)
-            .addValue("serverId", serverId)
-            .addValue("eventType", eventType)
-            .addValue("occurredAt", occurredAt)
-            .addValue("jellyfinUserId", jellyfinUserId)
-            .addValue("jellyfinItemId", jellyfinItemId)
-            .addValue("payload", payload)
+        val params =
+            MapSqlParameterSource()
+                .addValue("eventId", eventId)
+                .addValue("serverId", serverId)
+                .addValue("eventType", eventType)
+                .addValue("occurredAt", occurredAt)
+                .addValue("jellyfinUserId", jellyfinUserId)
+                .addValue("jellyfinItemId", jellyfinItemId)
+                .addValue("payload", payload)
 
         jdbc.update(sql, params)
     }

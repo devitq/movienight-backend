@@ -48,6 +48,8 @@ public class MovieNightSyncService
     {
         _logger.LogInformation("Starting MovieNight library sync");
 
+        cancellationToken.ThrowIfCancellationRequested();
+
         var items = _libraryManager.GetItemList(new InternalItemsQuery
         {
             IncludeItemTypes = new[] { BaseItemKind.Movie },

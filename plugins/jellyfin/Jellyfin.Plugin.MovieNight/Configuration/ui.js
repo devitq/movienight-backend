@@ -13,64 +13,140 @@
 
     const showMsg = getAlert();
 
+    function createTextButton(text, className, onClick) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.is = 'emby-button';
+        btn.className = `emby-button raised ${className}`;
+        btn.style.margin = '0.5em';
+        btn.style.padding = '0.4em 1em';
+        btn.innerHTML = `<span>${text}</span>`;
+        btn.onclick = onClick;
+        return btn;
+    }
+
+    function createIconButton(icon, title, className, onClick) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.is = 'emby-button';
+        btn.className = `button-flat detailButton emby-button ${className}`;
+        btn.title = title;
+        btn.innerHTML = `
+            <div class="detailButton-content">
+                <span class="material-icons detailButton-icon ${icon}" aria-hidden="true"></span>
+            </div>
+        `;
+        btn.onclick = onClick;
+        return btn;
+    }
+
     function injectUI() {
-        const headerButtons = document.querySelector('.headerViewButtons, .view-library .content-primary, .home-section .sectionTitleContainer');
-
-        if (headerButtons) {
-             if (!document.querySelector('.btnMovieNightRecommend')) {
-                const btn = document.createElement('button');
-                btn.className = 'emby-button raised btnMovieNightRecommend';
-                btn.innerHTML = '<span>Recommend Film</span>';
-                btn.style.marginLeft = '1em';
-                btn.onclick = showRecommendation;
-                headerButtons.appendChild(btn);
-            }
-
-            if (!document.querySelector('.btnMovieNightAddMovie')) {
-                const btn = document.createElement('button');
-                btn.className = 'emby-button raised btnMovieNightAddMovie';
-                btn.innerHTML = '<span>Add Movie (STRM)</span>';
-                btn.style.marginLeft = '1em';
-                btn.onclick = promptAddMovie;
-                headerButtons.appendChild(btn);
+        // 1. Item Detail Page - Add icon button for rating
+        const detailButtons = document.querySelector('.mainDetailButtons');
+        if (detailButtons && !document.querySelector('.btnMovieNightRate')) {
+            const itemId = getItemIdFromUrl();
+            if (itemId) {
+                const rateBtn = createIconButton('star_rate', 'Rate on MovieNight', 'btnMovieNightRate', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showRatingDialog(itemId);
+                });
+                const moreBtn = detailButtons.querySelector('.btnMoreCommands');
+                if (moreBtn) {
+                    detailButtons.insertBefore(rateBtn, moreBtn);
+                } else {
+                    detailButtons.appendChild(rateBtn);
+                }
             }
         }
 
-        const detailButtons = document.querySelector('.itemDetailButtons, .itemDetailsButtons');
-        if (detailButtons && !document.querySelector('.movieNightRatingContainer')) {
-            const itemId = getItemIdFromUrl();
-            if (itemId) {
-                const container = document.createElement('div');
-                container.className = 'movieNightRatingContainer';
-                container.style.display = 'inline-flex';
-                container.style.alignItems = 'center';
-                container.style.marginLeft = '1em';
+        // 2. Library Pages - Add text buttons to toolbar
+        const toolBar = document.querySelector('.libraryPage:not(.itemDetailPage) .flex.align-items-center.justify-content-center.focuscontainer-x');
+        if (toolBar && !document.querySelector('.btnMovieNightRecommend')) {
+             toolBar.appendChild(createTextButton('Recommend Film', 'btnMovieNightRecommend', (e) => {
+                 e.preventDefault();
+                 showRecommendation();
+             }));
+             toolBar.appendChild(createTextButton('Add Movie (STRM)', 'btnMovieNightAddMovie', (e) => {
+                 e.preventDefault();
+                 promptAddMovie();
+             }));
+        }
 
-                const label = document.createElement('span');
-                label.innerText = 'MovieNight: ';
-                label.style.marginRight = '0.5em';
-                container.appendChild(label);
-
-                const select = document.createElement('select');
-                select.className = 'emby-select';
-                select.style.padding = '0.2em';
-                for (let i = 0; i <= 10; i++) {
-                    const opt = document.createElement('option');
-                    opt.value = i;
-                    opt.innerText = i === 0 ? 'Rate...' : i;
-                    select.appendChild(opt);
-                }
-                select.onchange = (e) => submitRating(itemId, e.target.value);
-                container.appendChild(select);
-
-                detailButtons.appendChild(container);
-            }
+        // 3. Home Page - Prepend a MovieNight section
+        const homeSections = document.querySelector('.sections.homeSectionsContainer');
+        if (homeSections && !document.querySelector('.movieNightHomeButtons')) {
+            const section = document.createElement('div');
+            section.className = 'verticalSection movieNightHomeButtons';
+            section.style.padding = '0 var(--sidePadding)';
+            section.innerHTML = '<h2 class="sectionTitle">MovieNight</h2><div class="movieNightBtnContainer" style="display:flex; flex-wrap:wrap;"></div>';
+            const btnContainer = section.querySelector('.movieNightBtnContainer');
+            btnContainer.appendChild(createTextButton('Recommend Film', 'btnMovieNightRecommend', showRecommendation));
+            btnContainer.appendChild(createTextButton('Add Movie (STRM)', 'btnMovieNightAddMovie', promptAddMovie));
+            homeSections.insertBefore(section, homeSections.firstChild);
         }
     }
 
     function getItemIdFromUrl() {
-        const params = new URLSearchParams(window.location.search);
+        const queryString = window.location.hash.includes('?') ? window.location.hash.split('?')[1] : window.location.search;
+        const params = new URLSearchParams(queryString);
         return params.get('id') || params.get('itemId');
+    }
+
+    async function showRatingDialog(itemId) {
+        const overlay = document.createElement('div');
+        overlay.className = 'dialogBackdrop dialogBackdropOpened';
+        overlay.style.zIndex = '99998';
+        overlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
+        overlay.style.position = 'fixed';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.right = '0';
+        overlay.style.bottom = '0';
+
+        const dialog = document.createElement('div');
+        dialog.className = 'dialog';
+        dialog.style.position = 'fixed';
+        dialog.style.top = '50%';
+        dialog.style.left = '50%';
+        dialog.style.transform = 'translate(-50%, -50%)';
+        dialog.style.zIndex = '99999';
+        dialog.style.padding = '2em';
+        dialog.style.minWidth = '250px';
+        dialog.style.backgroundColor = '#222';
+        dialog.style.borderRadius = '1em';
+        dialog.style.color = 'white';
+
+        dialog.innerHTML = `
+            <h2 style="margin-top:0; text-align:center;">Rate on MovieNight</h2>
+            <div class="rating-grid" style="display:grid; grid-template-columns:repeat(5, 1fr); gap:0.5em; margin:1.5em 0;"></div>
+            <button is="emby-button" class="emby-button button-flat btnCancel" style="width:100%; color: white;">Cancel</button>
+        `;
+
+        const grid = dialog.querySelector('.rating-grid');
+        for (let i = 1; i <= 10; i++) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.is = 'emby-button';
+            btn.className = 'emby-button raised';
+            btn.innerText = i;
+            btn.style.padding = '0.5em';
+            btn.onclick = async () => {
+                cleanup();
+                await submitRating(itemId, i);
+            };
+            grid.appendChild(btn);
+        }
+
+        const cleanup = () => {
+            if (overlay.parentNode) document.body.removeChild(overlay);
+        };
+
+        dialog.querySelector('.btnCancel').onclick = cleanup;
+        overlay.onclick = (e) => { if (e.target === overlay) cleanup(); };
+
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
     }
 
     async function showRecommendation() {
@@ -114,7 +190,6 @@
     }
 
     async function submitRating(itemId, score) {
-        if (score === "0") return;
         const userId = ApiClient.getCurrentUserId();
         try {
             await ApiClient.ajax({
@@ -130,7 +205,16 @@
         }
     }
 
-    const observer = new MutationObserver(injectUI);
+    let timeout;
+    const throttledInject = () => {
+        if (timeout) return;
+        timeout = setTimeout(() => {
+            injectUI();
+            timeout = null;
+        }, 100);
+    };
+
+    const observer = new MutationObserver(throttledInject);
     observer.observe(document.body, { childList: true, subtree: true });
 
     injectUI();

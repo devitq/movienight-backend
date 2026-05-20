@@ -16,6 +16,11 @@ const movieNightConfigPage = {
           config.EnablePeriodicSync !== false;
         view.querySelector("#EnablePlaybackEvents").checked =
           config.EnablePlaybackEvents !== false;
+
+        const uiScriptUrl = ApiClient.getUrl("web/ConfigurationPage", {
+          name: "MovieNight.ui.js",
+        });
+        view.querySelector("#UIScriptUrl").innerText = uiScriptUrl;
       })
       .finally(() => {
         Dashboard.hideLoadingMsg();

@@ -70,11 +70,12 @@ public class MovieNightBackendClient
     }
 
     /// <summary>
-    /// Triggers the current backend Jellyfin sync endpoint.
+    /// Pushes library sync data to the backend.
     /// </summary>
+    /// <param name="payload">Sync payload.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Backend response body.</returns>
-    public async Task<string> TriggerSyncAsync(CancellationToken cancellationToken)
+    public async Task<string> SyncAsync(object payload, CancellationToken cancellationToken)
     {
         var request = CreateRequest(HttpMethod.Post, "/api/integrations/jellyfin/sync");
         if (request is null)
@@ -82,10 +83,69 @@ public class MovieNightBackendClient
             return "Plugin is not configured.";
         }
 
+        request.Content = JsonContent.Create(payload, options: JsonOptions);
         using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
         var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
         return body;
+    }
+
+    /// <summary>
+    /// Gets recommendations for a user.
+    /// </summary>
+    public async Task<string> GetRecommendationsAsync(string userId, string? contentType, string? mood, int limit, CancellationToken cancellationToken)
+    {
+        var query = $"?limit={limit}";
+        if (!string.IsNullOrEmpty(contentType)) query += $"&contentType={Uri.EscapeDataString(contentType)}";
+        if (!string.IsNullOrEmpty(mood)) query += $"&mood={Uri.EscapeDataString(mood)}";
+
+        var request = CreateRequest(HttpMethod.Get, $"/api/users/{userId}/recommendations{query}");
+        if (request is null) return "Plugin is not configured.";
+
+        using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        return body;
+    }
+
+    /// <summary>
+    /// Posts a rating for a film.
+    /// </summary>
+    public async Task PostRatingAsync(string userId, string filmId, int score, string? note, CancellationToken cancellationToken)
+    {
+        var request = CreateRequest(HttpMethod.Post, $"/api/users/{userId}/ratings/films/{filmId}");
+        if (request is null) return;
+
+        request.Content = JsonContent.Create(new { score, note }, options: JsonOptions);
+        using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+    }
+
+    /// <summary>
+    /// Gets ratings for a user.
+    /// </summary>
+    public async Task<string> GetRatingsAsync(string userId, CancellationToken cancellationToken)
+    {
+        var request = CreateRequest(HttpMethod.Get, $"/api/users/{userId}/ratings");
+        if (request is null) return "[]";
+
+        using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        return body;
+    }
+
+    /// <summary>
+    /// Marks a film as viewed.
+    /// </summary>
+    public async Task MarkViewedAsync(string userId, string filmId, DateTimeOffset? watchedAt, CancellationToken cancellationToken)
+    {
+        var request = CreateRequest(HttpMethod.Post, $"/api/users/{userId}/library/films/{filmId}/viewed");
+        if (request is null) return;
+
+        request.Content = JsonContent.Create(new { watchedAt }, options: JsonOptions);
+        using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
     }
 
     /// <summary>

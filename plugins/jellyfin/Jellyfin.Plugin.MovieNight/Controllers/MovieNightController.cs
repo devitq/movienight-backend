@@ -16,14 +16,15 @@ namespace Jellyfin.Plugin.MovieNight.Controllers;
 public class MovieNightController : ControllerBase
 {
     private readonly MovieNightBackendClient _backendClient;
+    private readonly MovieNightSyncService _syncService;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MovieNightController"/> class.
     /// </summary>
-    /// <param name="backendClient">Backend client.</param>
-    public MovieNightController(MovieNightBackendClient backendClient)
+    public MovieNightController(MovieNightBackendClient backendClient, MovieNightSyncService syncService)
     {
         _backendClient = backendClient;
+        _syncService = syncService;
     }
 
     /// <summary>
@@ -61,7 +62,8 @@ public class MovieNightController : ControllerBase
     [HttpPost("Sync")]
     public async Task<ActionResult<string>> Sync(CancellationToken cancellationToken)
     {
-        return await _backendClient.TriggerSyncAsync(cancellationToken).ConfigureAwait(false);
+        await _syncService.PerformSyncAsync(cancellationToken).ConfigureAwait(false);
+        return Ok("Sync triggered");
     }
 
     /// <summary>
@@ -74,7 +76,59 @@ public class MovieNightController : ControllerBase
     {
         return await _backendClient.GetSyncStateAsync(cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// Gets recommendations for the current user.
+    /// </summary>
+    [HttpGet("Users/{userId}/Recommendations")]
+    public async Task<ActionResult<string>> GetRecommendations(
+        [FromRoute] string userId,
+        [FromQuery] string? contentType,
+        [FromQuery] string? mood,
+        [FromQuery] int limit = 10,
+        CancellationToken cancellationToken = default)
+    {
+        return await _backendClient.GetRecommendationsAsync(userId, contentType, mood, limit, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Posts a rating for a film.
+    /// </summary>
+    [HttpPost("Users/{userId}/Ratings/Films/{filmId}")]
+    public async Task<ActionResult> PostRating(
+        [FromRoute] string userId,
+        [FromRoute] string filmId,
+        [FromBody] RatingRequest request,
+        CancellationToken cancellationToken)
+    {
+        await _backendClient.PostRatingAsync(userId, filmId, request.Score, request.Note, cancellationToken).ConfigureAwait(false);
+        return Ok();
+    }
+
+    /// <summary>
+    /// Marks a film as viewed.
+    /// </summary>
+    [HttpPost("Users/{userId}/Library/Films/{filmId}/Viewed")]
+    public async Task<ActionResult> MarkViewed(
+        [FromRoute] string userId,
+        [FromRoute] string filmId,
+        [FromBody] ViewedRequest request,
+        CancellationToken cancellationToken)
+    {
+        await _backendClient.MarkViewedAsync(userId, filmId, request.WatchedAt, cancellationToken).ConfigureAwait(false);
+        return Ok();
+    }
 }
+
+/// <summary>
+/// Rating request.
+/// </summary>
+public sealed record RatingRequest(int Score, string? Note);
+
+/// <summary>
+/// Viewed request.
+/// </summary>
+public sealed record ViewedRequest(DateTimeOffset? WatchedAt);
 
 /// <summary>
 /// MovieNight plugin status response.

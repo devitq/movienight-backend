@@ -14,6 +14,7 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
     public void RegisterServices(IServiceCollection serviceCollection, IServerApplicationHost applicationHost)
     {
         serviceCollection.AddSingleton<MovieNightBackendClient>();
+        serviceCollection.AddSingleton<MovieNightSyncService>();
         serviceCollection.AddHostedService<MovieNightPeriodicSyncService>();
         serviceCollection.AddHostedService<MovieNightPlaybackEventService>();
     }

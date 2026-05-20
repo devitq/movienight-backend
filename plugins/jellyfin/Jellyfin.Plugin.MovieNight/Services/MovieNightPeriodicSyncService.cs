@@ -1,6 +1,14 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using MediaBrowser.Controller.Library;
+using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.Movies;
+using MediaBrowser.Model.Entities;
+using MediaBrowser.Model.Querying;
+using Jellyfin.Data.Enums;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -11,19 +19,17 @@ namespace Jellyfin.Plugin.MovieNight.Services;
 /// </summary>
 public sealed class MovieNightPeriodicSyncService : BackgroundService
 {
-    private readonly MovieNightBackendClient _backendClient;
+    private readonly MovieNightSyncService _syncService;
     private readonly ILogger<MovieNightPeriodicSyncService> _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MovieNightPeriodicSyncService"/> class.
     /// </summary>
-    /// <param name="backendClient">Backend client.</param>
-    /// <param name="logger">Logger.</param>
     public MovieNightPeriodicSyncService(
-        MovieNightBackendClient backendClient,
+        MovieNightSyncService syncService,
         ILogger<MovieNightPeriodicSyncService> logger)
     {
-        _backendClient = backendClient;
+        _syncService = syncService;
         _logger = logger;
     }
 
@@ -41,7 +47,7 @@ public sealed class MovieNightPeriodicSyncService : BackgroundService
                     continue;
                 }
 
-                await _backendClient.TriggerSyncAsync(stoppingToken).ConfigureAwait(false);
+                await _syncService.PerformSyncAsync(stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {

@@ -42,4 +42,9 @@ public class PluginConfiguration : BasePluginConfiguration
     /// Gets or sets enabled Jellyfin library ids. Empty means all libraries.
     /// </summary>
     public List<string> EnabledLibraryIds { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the path where .strm files will be created.
+    /// </summary>
+    public string StrmOutputPath { get; set; } = string.Empty;
 }

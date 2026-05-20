@@ -48,45 +48,29 @@ public class MovieNightSyncService
     {
         _logger.LogInformation("Starting MovieNight library sync");
 
-        cancellationToken.ThrowIfCancellationRequested();
+        var config = Plugin.Instance?.Configuration;
+        var enabledLibraryIds = config?.EnabledLibraryIds ?? new List<string>();
 
-        var items = _libraryManager.GetItemList(new InternalItemsQuery
+        var query = new InternalItemsQuery
         {
             IncludeItemTypes = new[] { BaseItemKind.Movie },
             Recursive = true
-        });
+        };
 
+        if (enabledLibraryIds.Count > 0)
+        {
+            query.AncestorIds = enabledLibraryIds.Select(Guid.Parse).ToArray();
+        }
+
+        var items = _libraryManager.GetItemList(query);
         var users = _userManager.Users;
         var syncItems = new List<object>();
 
         foreach (var item in items)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
             if (item is not Movie movie) continue;
 
             var jellyfinItemId = movie.Id.ToString("N");
-            var userStates = new List<object>();
-
-            foreach (var user in users)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                var userData = _userDataManager.GetUserData(user, movie);
-                if (userData is null || (!userData.Played && userData.PlayCount == 0 && userData.LastPlayedDate is null && userData.Rating is null))
-                {
-                    continue;
-                }
-
-                userStates.Add(new
-                {
-                    jellyfinUserId = user.Id.ToString("N"),
-                    isViewed = userData.Played,
-                    playCount = userData.PlayCount,
-                    lastPlayedAt = userData.LastPlayedDate,
-                    userRating = userData.Rating
-                });
-            }
 
             var itemData = new Dictionary<string, object?>
             {
@@ -97,9 +81,19 @@ public class MovieNightSyncService
                 ["year"] = movie.ProductionYear,
                 ["duration"] = movie.RunTimeTicks,
                 ["genres"] = movie.Genres,
+                ["posterUrl"] = $"/Items/{jellyfinItemId}/Images/Primary",
                 ["imdbId"] = movie.GetProviderId(MetadataProvider.Imdb),
                 ["tmdbId"] = movie.GetProviderId(MetadataProvider.Tmdb),
-                ["userStates"] = userStates
+                ["userStates"] = users.Select(u => {
+                    var userData = _userDataManager.GetUserData(u, movie);
+                    return new {
+                        jellyfinUserId = u.Id.ToString("N"),
+                        isViewed = userData?.Played ?? false,
+                        playCount = userData?.PlayCount ?? 0,
+                        lastPlayedAt = userData?.LastPlayedDate,
+                        userRating = userData?.Rating
+                    };
+                }).ToList()
             };
 
             syncItems.Add(itemData);

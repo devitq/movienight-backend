@@ -1,5 +1,5 @@
 using System;
-using System.Security.Claims;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.MovieNight.Services;
@@ -89,12 +89,7 @@ public class MovieNightController : ControllerBase
         [FromQuery] int limit = 10,
         CancellationToken cancellationToken = default)
     {
-        if (!TryValidateCurrentUserId(userId, out var authenticatedUserId, out var errorResult))
-        {
-            return errorResult!;
-        }
-
-        return await _backendClient.GetRecommendationsAsync(authenticatedUserId, contentType, mood, limit, cancellationToken).ConfigureAwait(false);
+        return await _backendClient.GetRecommendationsAsync(userId, contentType, mood, limit, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -107,12 +102,7 @@ public class MovieNightController : ControllerBase
         [FromBody] RatingRequest request,
         CancellationToken cancellationToken)
     {
-        if (!TryValidateCurrentUserId(userId, out var authenticatedUserId, out var errorResult))
-        {
-            return errorResult!;
-        }
-
-        await _backendClient.PostRatingAsync(authenticatedUserId, filmId, request.Score, request.Note, cancellationToken).ConfigureAwait(false);
+        await _backendClient.PostRatingAsync(userId, filmId, request.Score, request.Note, cancellationToken).ConfigureAwait(false);
         return Ok();
     }
 
@@ -126,43 +116,50 @@ public class MovieNightController : ControllerBase
         [FromBody] ViewedRequest request,
         CancellationToken cancellationToken)
     {
-        if (!TryValidateCurrentUserId(userId, out var authenticatedUserId, out var errorResult))
-        {
-            return errorResult!;
-        }
-
-        await _backendClient.MarkViewedAsync(authenticatedUserId, filmId, request.WatchedAt, cancellationToken).ConfigureAwait(false);
+        await _backendClient.MarkViewedAsync(userId, filmId, request.WatchedAt, cancellationToken).ConfigureAwait(false);
         return Ok();
     }
 
-    private bool TryValidateCurrentUserId(string routeUserId, out string authenticatedUserId, out ActionResult? errorResult)
+    /// <summary>
+    /// Creates a new film by generating a .strm file.
+    /// </summary>
+    [HttpPost("Films")]
+    public async Task<ActionResult> CreateFilm([FromBody] CreateFilmRequest request)
     {
-        authenticatedUserId = NormalizeId(
-            HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier) ??
-            HttpContext.User.FindFirstValue("JellyfinUserId") ??
-            HttpContext.User.FindFirstValue("UserId"));
-        if (string.IsNullOrWhiteSpace(authenticatedUserId))
+        var config = Plugin.Instance?.Configuration;
+        if (config == null || string.IsNullOrWhiteSpace(config.StrmOutputPath))
         {
-            errorResult = Unauthorized();
-            return false;
+            return BadRequest("STRM output path is not configured.");
         }
 
-        var normalizedRouteUserId = NormalizeId(routeUserId);
-        if (!string.Equals(authenticatedUserId, normalizedRouteUserId, StringComparison.OrdinalIgnoreCase))
+        try
         {
-            errorResult = Forbid();
-            return false;
+            if (!Directory.Exists(config.StrmOutputPath))
+            {
+                Directory.CreateDirectory(config.StrmOutputPath);
+            }
+
+            var safeTitle = string.Join("_", request.Title.Split(Path.GetInvalidFileNameChars()));
+            var fileName = $"{safeTitle}.strm";
+            var filePath = Path.Combine(config.StrmOutputPath, fileName);
+
+            // Placeholder content for the .strm file.
+            // In a real scenario, this could be a URL provided in the request.
+            await System.IO.File.WriteAllTextAsync(filePath, "http://placeholder.url/upload_me_later").ConfigureAwait(false);
+
+            return Ok(new { FilePath = filePath });
         }
-
-        errorResult = null;
-        return true;
-    }
-
-    private static string NormalizeId(string? value)
-    {
-        return Guid.TryParse(value, out var parsedGuid) ? parsedGuid.ToString("N") : string.Empty;
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Failed to create film: {ex.Message}");
+        }
     }
 }
+
+/// <summary>
+/// Create film request.
+/// </summary>
+public sealed record CreateFilmRequest(string Title);
 
 /// <summary>
 /// Rating request.

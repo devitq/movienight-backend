@@ -11,6 +11,8 @@ const movieNightConfigPage = {
         view.querySelector("#ApiToken").value = config.ApiToken || "";
         view.querySelector("#SyncIntervalMinutes").value =
           config.SyncIntervalMinutes || 30;
+        view.querySelector("#StrmOutputPath").value =
+          config.StrmOutputPath || "";
         view.querySelector("#Enabled").checked = config.Enabled || false;
         view.querySelector("#EnablePeriodicSync").checked =
           config.EnablePeriodicSync !== false;
@@ -39,6 +41,7 @@ const movieNightConfigPage = {
           form.querySelector("#SyncIntervalMinutes").value || "30",
           10,
         );
+        config.StrmOutputPath = form.querySelector("#StrmOutputPath").value;
         config.Enabled = form.querySelector("#Enabled").checked;
         config.EnablePeriodicSync =
           form.querySelector("#EnablePeriodicSync").checked;

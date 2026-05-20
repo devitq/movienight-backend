@@ -1,6 +1,14 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using MediaBrowser.Controller.Library;
+using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.Movies;
+using MediaBrowser.Model.Entities;
+using MediaBrowser.Model.Querying;
+using Jellyfin.Data.Enums;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 

@@ -56,21 +56,23 @@ class FilmService(
                 throw BlockedValueException(target = "Film", field = "description")
             }
 
-            val film =
-                Film(
-                    id = idGenerator.generateId(),
-                    title = command.title,
-                    description = command.description,
-                )
-            val saved = filmRepository.save(film)
-
-            filmCreatedCounter.increment()
-
-            log.info("Film created: id='{}', title='{}'", saved.id, saved.title)
-            return saved
-        } finally {
-            sample.stop(createFilmTimer)
-        }
+        val film =
+            Film(
+                id = idGenerator.generateId(),
+                title = command.title,
+                description = command.description,
+                contentType = command.contentType,
+                releaseYear = command.releaseYear,
+                genres = command.genres,
+                cast = command.cast,
+                directors = command.directors,
+                imdbRating = command.imdbRating,
+                platformRating = command.platformRating,
+                externalUrl = command.externalUrl,
+                jellyfinItemId = command.jellyfinItemId,
+                jellyfinLibraryId = command.jellyfinLibraryId,
+            )
+        return filmRepository.save(film)
     }
 
     override fun edit(
@@ -100,20 +102,23 @@ class FilmService(
                 throw EntityNotFoundException(entity = "Film", id = id.toString())
             }
 
-            val updatedFilm =
-                film.copy(
-                    title = command.title,
-                    description = command.description,
-                )
-            val saved = filmRepository.save(updatedFilm)
+        film =
+            film.copy(
+                title = command.title,
+                description = command.description,
+                contentType = command.contentType,
+                releaseYear = command.releaseYear,
+                genres = command.genres,
+                cast = command.cast,
+                directors = command.directors,
+                imdbRating = command.imdbRating,
+                platformRating = command.platformRating,
+                externalUrl = command.externalUrl,
+                jellyfinItemId = command.jellyfinItemId,
+                jellyfinLibraryId = command.jellyfinLibraryId,
+            )
 
-            filmEditedCounter.increment()
-
-            log.info("Film edited: id='{}'", saved.id)
-            return saved
-        } finally {
-            sample.stop(editFilmTimer)
-        }
+        return filmRepository.save(film)
     }
 
     override fun delete(id: UUID) {

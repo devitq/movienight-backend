@@ -25,6 +25,12 @@ import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
+private fun String.toContentTypeOrFilm(): com.project.movienight.domain.model.ContentType =
+    runCatching {
+        com.project.movienight.domain.model.ContentType
+            .valueOf(this)
+    }.getOrDefault(com.project.movienight.domain.model.ContentType.FILM)
+
 @RestController
 @RequestMapping("/api/films")
 class FilmController(
@@ -45,6 +51,16 @@ class FilmController(
                 CreateFilmCommand(
                     title = request.title,
                     description = request.description,
+                    contentType = request.contentType.toContentTypeOrFilm(),
+                    releaseYear = request.releaseYear,
+                    genres = request.genres,
+                    cast = request.cast,
+                    directors = request.directors,
+                    imdbRating = request.imdbRating,
+                    platformRating = request.platformRating,
+                    externalUrl = request.externalUrl,
+                    jellyfinItemId = request.jellyfinItemId,
+                    jellyfinLibraryId = request.jellyfinLibraryId,
                 ),
             ),
         )
@@ -61,6 +77,16 @@ class FilmController(
                     EditFilmCommand(
                         title = request.title,
                         description = request.description,
+                        contentType = request.contentType.toContentTypeOrFilm(),
+                        releaseYear = request.releaseYear,
+                        genres = request.genres,
+                        cast = request.cast,
+                        directors = request.directors,
+                        imdbRating = request.imdbRating,
+                        platformRating = request.platformRating,
+                        externalUrl = request.externalUrl,
+                        jellyfinItemId = request.jellyfinItemId,
+                        jellyfinLibraryId = request.jellyfinLibraryId,
                     ),
             ),
         )

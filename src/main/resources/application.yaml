@@ -95,6 +95,14 @@ info:
     description: MovieNight backend service
     version: ${project.version:unknown}
 
+integrations:
+  jellyfin:
+    enabled: ${JELLYFIN_SYNC_ENABLED:false}
+    base-url: ${JELLYFIN_BASE_URL:}
+    api-key: ${JELLYFIN_API_KEY:}
+    sync-interval-ms: ${JELLYFIN_SYNC_INTERVAL_MS:1800000}
+    request-timeout-ms: ${JELLYFIN_REQUEST_TIMEOUT_MS:20000}
+
 services:
   user:
     blocked-names:

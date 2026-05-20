@@ -9,6 +9,7 @@ data class FilmLibraryResponse(
     val filmId: UUID,
     val comment: String?,
     val isViewed: Boolean,
+    val watchedAt: java.time.LocalDateTime?,
 ) {
     companion object {
         fun fromDomain(filmLibrary: FilmLibrary): FilmLibraryResponse =
@@ -18,6 +19,7 @@ data class FilmLibraryResponse(
                 filmId = filmLibrary.filmId,
                 comment = filmLibrary.comment,
                 isViewed = filmLibrary.isViewed,
+                watchedAt = filmLibrary.watchedAt,
             )
     }
 }

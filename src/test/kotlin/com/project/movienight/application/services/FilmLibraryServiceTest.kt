@@ -36,40 +36,19 @@ class FilmLibraryServiceTest {
     }
 
     @Test
-    fun `should create new film library when user has no library`() {
+    fun `should throw EntityNotFoundException when creating library for user with no entries`() {
         val userId = UUID.randomUUID()
-        val libraryId = UUID.randomUUID()
         val command = CreateFilmLibraryCommand(userId = userId, name = "My Films")
-        val expectedLibrary =
-            FilmLibrary(
-                id = libraryId,
-                userId = userId,
-                filmId = libraryId,
-                comment = "My Films",
-                isViewed = false,
-            )
 
         every { filmLibraryRepository.findAll() } returns emptyList()
-        every { idGenerator.generateId() } returns libraryId
-        every {
-            filmLibraryRepository.save(
-                match {
-                    it.userId == userId && it.comment == "My Films" && it.isViewed == false
-                },
-            )
-        } returns expectedLibrary
 
-        val result = filmLibraryService.create(command)
-
-        assertNotNull(result)
-        assertEquals(libraryId, result.id)
-        assertEquals(userId, result.userId)
-        assertEquals(libraryId, result.filmId)
-        assertEquals("My Films", result.comment)
+        assertThrows<EntityNotFoundException> {
+            filmLibraryService.create(command)
+        }
 
         verify(exactly = 1) { filmLibraryRepository.findAll() }
-        verify(exactly = 1) { idGenerator.generateId() }
-        verify(exactly = 1) { filmLibraryRepository.save(any()) }
+        verify(exactly = 0) { idGenerator.generateId() }
+        verify(exactly = 0) { filmLibraryRepository.save(any()) }
     }
 
     @Test

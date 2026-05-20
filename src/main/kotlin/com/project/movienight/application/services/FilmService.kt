@@ -40,7 +40,7 @@ class FilmService(
 
         try {
             log.debug(
-                "Create film request received: title='{}', descriptionLength={}'",
+                "Create film request received: title='{}', descriptionLength={}",
                 command.title,
                 command.description.length,
             )

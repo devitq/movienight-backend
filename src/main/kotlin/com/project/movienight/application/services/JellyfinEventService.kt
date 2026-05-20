@@ -30,23 +30,33 @@ class JellyfinEventService(
         itemId: String,
         payload: Map<String, Any>?,
     ) {
-        if (jellyfinEventRepository.exists(eventId = eventId)) {
+        val payloadJson = payload?.let { objectMapper.writeValueAsString(it) }
+        val inserted =
+            jellyfinEventRepository.save(
+                eventId = eventId,
+                serverId = serverId,
+                eventType = eventType,
+                occurredAt = occurredAt,
+                jellyfinUserId = jellyfinUserId,
+                jellyfinItemId = itemId,
+                payload = payloadJson,
+            )
+        if (inserted != 1) {
             return
         }
-
-        val payloadJson = payload?.let { objectMapper.writeValueAsString(it) }
-        jellyfinEventRepository.save(eventId, serverId, eventType, occurredAt, jellyfinUserId, itemId, payloadJson)
 
         try {
             if (playbackEventTypes.contains(eventType)) {
                 val localUser = userRepository.findAll().firstOrNull { it.jellyfinUserId == jellyfinUserId }
                 if (localUser == null) {
+                    jellyfinEventRepository.delete(eventId)
                     businessMetricsService.recordJellyfinUnmappedUser()
                     return
                 }
 
                 val film = filmRepository.findByJellyfinItemId(itemId)
                 if (film == null) {
+                    jellyfinEventRepository.delete(eventId)
                     businessMetricsService.recordBackendWriteFailure()
                     return
                 }
@@ -63,6 +73,7 @@ class JellyfinEventService(
         } catch (
             @Suppress("TooGenericExceptionCaught") ex: RuntimeException,
         ) {
+            jellyfinEventRepository.delete(eventId)
             businessMetricsService.recordBackendWriteFailure()
             throw ex
         }

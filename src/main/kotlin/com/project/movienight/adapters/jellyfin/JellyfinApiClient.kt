@@ -100,7 +100,7 @@ class JellyfinApiClient(
                 throw IllegalStateException("Failed to call Jellyfin at $uri", exception)
             }
 
-        check(response.statusCode() !in 200..299) {
+        check(response.statusCode() in 200..299) {
             "Jellyfin request failed with status ${response.statusCode()} for $uri"
         }
 

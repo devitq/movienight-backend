@@ -27,6 +27,10 @@ class JellyfinEventsController(
         @RequestHeader(value = "X-MovieNight-Plugin-Token", required = false) token: String?,
         @RequestBody request: JellyfinEventRequest,
     ) {
+        if (!properties.enabled) {
+            throw ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Jellyfin integration is disabled")
+        }
+
         if (properties.pluginToken.isNotBlank()) {
             if (token == null || token != properties.pluginToken) {
                 throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid plugin token")

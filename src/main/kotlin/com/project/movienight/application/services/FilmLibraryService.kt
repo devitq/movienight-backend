@@ -33,21 +33,7 @@ class FilmLibraryService(
     ListFilmLibraryEntriesUseCase {
     override fun create(command: CreateFilmLibraryCommand): FilmLibrary {
         findByUserId(command.userId)?.let { return it }
-
-        val libraryId = idGenerator.generateId()
-        val saved =
-            filmLibraryRepository.save(
-                FilmLibrary(
-                    id = libraryId,
-                    userId = command.userId,
-                    filmId = libraryId,
-                    comment = command.name,
-                    isViewed = false,
-                    watchedAt = null,
-                ),
-            )
-        businessMetricsService.recordLibraryEvent()
-        return saved
+        throw EntityNotFoundException(entity = "Film library", id = command.userId.toString())
     }
 
     override fun addFilm(command: AddFilmToLibraryCommand): FilmLibrary {

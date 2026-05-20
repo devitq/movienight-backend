@@ -21,6 +21,7 @@ interface EditUserUseCase {
 
 data class EditUserCommand(
     val name: String,
+    val jellyfinUserId: String? = null,
 )
 
 interface DeleteUserUseCase {

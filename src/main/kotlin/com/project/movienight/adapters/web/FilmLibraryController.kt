@@ -11,6 +11,9 @@ import com.project.movienight.application.ports.input.GetAllFilmsUseCase
 import com.project.movienight.application.ports.input.GetFilmByIdUseCase
 import com.project.movienight.application.ports.input.GetFilmLibraryQuery
 import com.project.movienight.application.ports.input.GetFilmLibraryUseCase
+import com.project.movienight.application.ports.input.ListFilmLibraryEntriesUseCase
+import com.project.movienight.application.ports.input.MarkFilmViewedCommand
+import com.project.movienight.application.ports.input.MarkFilmViewedUseCase
 import com.project.movienight.application.ports.input.RemoveFilmFromLibraryCommand
 import com.project.movienight.application.ports.input.RemoveFilmFromLibraryUseCase
 import com.project.movienight.domain.exception.EntityNotFoundException
@@ -30,10 +33,11 @@ import java.util.UUID
 class FilmLibraryController(
     private val createFilmLibraryUseCase: CreateFilmLibraryUseCase,
     private val addFilmToLibraryUseCase: AddFilmToLibraryUseCase,
+    private val markFilmViewedUseCase: MarkFilmViewedUseCase,
     private val removeFilmFromLibraryUseCase: RemoveFilmFromLibraryUseCase,
     private val getFilmLibraryUseCase: GetFilmLibraryUseCase,
-    private val getFilmByIdUseCase: GetFilmByIdUseCase,
     private val getAllFilmsUseCase: GetAllFilmsUseCase,
+    private val listFilmLibraryEntriesUseCase: ListFilmLibraryEntriesUseCase,
 ) {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -60,18 +64,10 @@ class FilmLibraryController(
             ),
         )
 
-    @GetMapping("/films")
-    fun getAllFilmsInLibrary(
+    @GetMapping("/entries")
+    fun list(
         @PathVariable userId: UUID,
-    ): List<FilmResponse> {
-        val library =
-            getFilmLibraryUseCase.getLibrary(
-                GetFilmLibraryQuery(userId = userId),
-            )
-
-        val film = getFilmByIdUseCase.getById(library.filmId)
-        return listOf(FilmResponse.fromDomain(film))
-    }
+    ): List<FilmLibraryResponse> = listFilmLibraryEntriesUseCase.list(userId).map { FilmLibraryResponse.fromDomain(it) }
 
     @PostMapping("/films/{filmId}")
     @ResponseStatus(HttpStatus.CREATED)
@@ -82,6 +78,20 @@ class FilmLibraryController(
         FilmLibraryResponse.fromDomain(
             addFilmToLibraryUseCase.addFilm(
                 AddFilmToLibraryCommand(
+                    userId = userId,
+                    filmId = filmId,
+                ),
+            ),
+        )
+
+    @PostMapping("/films/{filmId}/viewed")
+    fun markViewed(
+        @PathVariable userId: UUID,
+        @PathVariable filmId: UUID,
+    ): FilmLibraryResponse =
+        FilmLibraryResponse.fromDomain(
+            markFilmViewedUseCase.markViewed(
+                MarkFilmViewedCommand(
                     userId = userId,
                     filmId = filmId,
                 ),

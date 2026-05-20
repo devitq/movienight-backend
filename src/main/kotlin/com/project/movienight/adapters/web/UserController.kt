@@ -64,6 +64,7 @@ class UserController(
                 command =
                     EditUserCommand(
                         name = request.name,
+                        jellyfinUserId = request.jellyfinUserId,
                     ),
             ),
         )

@@ -1,5 +1,6 @@
 package com.project.movienight.application.services
 
+import com.project.movienight.adapters.metrics.BusinessMetricsService
 import com.project.movienight.application.ports.input.AddFilmToLibraryCommand
 import com.project.movienight.application.ports.input.CreateFilmLibraryCommand
 import com.project.movienight.application.ports.input.GetFilmLibraryQuery
@@ -23,51 +24,31 @@ import java.util.UUID
 class FilmLibraryServiceTest {
     private lateinit var filmLibraryRepository: FilmLibraryRepositoryPort
     private lateinit var idGenerator: IdGenerator
+    private lateinit var businessMetricsService: BusinessMetricsService
     private lateinit var filmLibraryService: FilmLibraryService
 
     @BeforeEach
     fun setup() {
         filmLibraryRepository = mockk()
         idGenerator = mockk()
-        filmLibraryService = FilmLibraryService(filmLibraryRepository, idGenerator)
+        businessMetricsService = mockk(relaxed = true)
+        filmLibraryService = FilmLibraryService(filmLibraryRepository, idGenerator, businessMetricsService)
     }
 
     @Test
-    fun `should create new film library when user has no library`() {
+    fun `should throw EntityNotFoundException when creating library for user with no entries`() {
         val userId = UUID.randomUUID()
-        val libraryId = UUID.randomUUID()
-        val filmId = UUID.randomUUID()
         val command = CreateFilmLibraryCommand(userId = userId, name = "My Films")
-        val expectedLibrary =
-            FilmLibrary(
-                id = libraryId,
-                userId = userId,
-                filmId = filmId,
-                comment = "My Films",
-                isViewed = false,
-            )
 
         every { filmLibraryRepository.findAll() } returns emptyList()
-        every { idGenerator.generateId() } returnsMany listOf(libraryId, filmId)
-        every {
-            filmLibraryRepository.save(
-                match {
-                    it.userId == userId && it.comment == "My Films" && it.isViewed == false
-                },
-            )
-        } returns expectedLibrary
 
-        val result = filmLibraryService.create(command)
-
-        assertNotNull(result)
-        assertEquals(libraryId, result.id)
-        assertEquals(userId, result.userId)
-        assertEquals(filmId, result.filmId)
-        assertEquals("My Films", result.comment)
+        assertThrows<EntityNotFoundException> {
+            filmLibraryService.create(command)
+        }
 
         verify(exactly = 1) { filmLibraryRepository.findAll() }
-        verify(exactly = 2) { idGenerator.generateId() }
-        verify(exactly = 1) { filmLibraryRepository.save(any()) }
+        verify(exactly = 0) { idGenerator.generateId() }
+        verify(exactly = 0) { filmLibraryRepository.save(any()) }
     }
 
     @Test
@@ -131,7 +112,7 @@ class FilmLibraryServiceTest {
     }
 
     @Test
-    fun `should add film to existing library`() {
+    fun `should add film as a new library entry when another film already exists`() {
         val userId = UUID.randomUUID()
         val oldFilmId = UUID.randomUUID()
         val newFilmId = UUID.randomUUID()
@@ -144,16 +125,24 @@ class FilmLibraryServiceTest {
                 isViewed = true,
             )
         val command = AddFilmToLibraryCommand(userId = userId, filmId = newFilmId)
-        val updatedLibrary = existingLibrary.copy(filmId = newFilmId, isViewed = false)
+        val createdLibrary =
+            FilmLibrary(
+                id = UUID.randomUUID(),
+                userId = userId,
+                filmId = newFilmId,
+                comment = null,
+                isViewed = false,
+            )
 
         every { filmLibraryRepository.findAll() } returns listOf(existingLibrary)
+        every { idGenerator.generateId() } returns createdLibrary.id
         every {
             filmLibraryRepository.save(
                 match {
-                    it.filmId == newFilmId && it.isViewed == false
+                    it.id == createdLibrary.id && it.userId == userId && it.filmId == newFilmId && it.isViewed == false
                 },
             )
-        } returns updatedLibrary
+        } returns createdLibrary
 
         val result = filmLibraryService.addFilm(command)
 
@@ -161,7 +150,7 @@ class FilmLibraryServiceTest {
         assertEquals(false, result.isViewed)
 
         verify(exactly = 1) { filmLibraryRepository.findAll() }
-        verify(exactly = 0) { idGenerator.generateId() }
+        verify(exactly = 1) { idGenerator.generateId() }
         verify(exactly = 1) { filmLibraryRepository.save(any()) }
     }
 
@@ -253,13 +242,13 @@ class FilmLibraryServiceTest {
                 libraryId = wrongLibraryId,
             )
 
-        every { filmLibraryRepository.findAll() } returns listOf(existingLibrary)
+        every { filmLibraryRepository.findById(wrongLibraryId) } returns null
 
         assertThrows<EntityNotFoundException> {
             filmLibraryService.removeFilm(command)
         }
 
-        verify(exactly = 1) { filmLibraryRepository.findAll() }
+        verify(exactly = 1) { filmLibraryRepository.findById(wrongLibraryId) }
         verify(exactly = 0) { filmLibraryRepository.deleteById(any()) }
     }
 

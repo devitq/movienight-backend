@@ -37,6 +37,7 @@ class UserService(
                 name = command.name,
                 email = command.email,
                 library = null,
+                jellyfinUserId = null,
             )
         return userRepository.save(user)
     }
@@ -50,7 +51,13 @@ class UserService(
         }
 
         var user = userRepository.findById(id) ?: throw EntityNotFoundException(entity = "User", id = id.toString())
-        user = user.copy(name = command.name)
+
+        user =
+            user.copy(
+                name = command.name,
+                jellyfinUserId = command.jellyfinUserId ?: user.jellyfinUserId,
+            )
+
         return userRepository.save(user)
     }
 

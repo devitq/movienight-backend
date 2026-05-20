@@ -61,12 +61,20 @@ class FilmService(
                     id = idGenerator.generateId(),
                     title = command.title,
                     description = command.description,
+                    contentType = command.contentType,
+                    releaseYear = command.releaseYear,
+                    genres = command.genres,
+                    cast = command.cast,
+                    directors = command.directors,
+                    imdbRating = command.imdbRating,
+                    platformRating = command.platformRating,
+                    externalUrl = command.externalUrl,
+                    jellyfinItemId = command.jellyfinItemId,
+                    jellyfinLibraryId = command.jellyfinLibraryId,
                 )
+
             val saved = filmRepository.save(film)
-
             filmCreatedCounter.increment()
-
-            log.info("Film created: id='{}', title='{}'", saved.id, saved.title)
             return saved
         } finally {
             sample.stop(createFilmTimer)
@@ -93,23 +101,31 @@ class FilmService(
                 throw BlockedValueException(target = "Film", field = "description")
             }
 
-            val film = filmRepository.findById(id)
+            var film = filmRepository.findById(id)
 
             if (film == null) {
                 log.debug("Film not found for edit: id='{}'", id)
                 throw EntityNotFoundException(entity = "Film", id = id.toString())
             }
 
-            val updatedFilm =
+            film =
                 film.copy(
                     title = command.title,
                     description = command.description,
+                    contentType = command.contentType,
+                    releaseYear = command.releaseYear,
+                    genres = command.genres,
+                    cast = command.cast,
+                    directors = command.directors,
+                    imdbRating = command.imdbRating,
+                    platformRating = command.platformRating,
+                    externalUrl = command.externalUrl,
+                    jellyfinItemId = command.jellyfinItemId,
+                    jellyfinLibraryId = command.jellyfinLibraryId,
                 )
-            val saved = filmRepository.save(updatedFilm)
 
+            val saved = filmRepository.save(film)
             filmEditedCounter.increment()
-
-            log.info("Film edited: id='{}'", saved.id)
             return saved
         } finally {
             sample.stop(editFilmTimer)

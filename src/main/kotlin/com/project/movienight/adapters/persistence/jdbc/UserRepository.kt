@@ -22,6 +22,7 @@ class UserRepository(
             email = rs.getString("email"),
             provider = rs.getString("provider"),
             providerId = rs.getString("provider_id"),
+            jellyfinUserId = rs.getString("jellyfin_user_id"),
             createdAt = rs.getTimestamp("created_at").toLocalDateTime(),
         )
     }
@@ -45,27 +46,29 @@ class UserRepository(
             jdbc.update(
                 """
                 UPDATE users
-                SET name = ?, email = ?, provider = ?, provider_id = ?
+                SET name = ?, email = ?, provider = ?, provider_id = ?, jellyfin_user_id = ?
                 WHERE id = ?
                 """.trimIndent(),
                 entity.name,
                 entity.email,
                 entity.provider,
                 entity.providerId,
+                entity.jellyfinUserId,
                 entity.id,
             )
 
         if (updatedRows == 0) {
             jdbc.update(
                 """
-                INSERT INTO users (id, name, email, provider, provider_id, created_at)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO users (id, name, email, provider, provider_id, jellyfin_user_id, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """.trimIndent(),
                 entity.id,
                 entity.name,
                 entity.email,
                 entity.provider,
                 entity.providerId,
+                entity.jellyfinUserId,
                 entity.createdAt,
             )
         }
@@ -75,7 +78,7 @@ class UserRepository(
     override fun findById(id: UUID): User? {
         val entities =
             jdbc.query(
-                "SELECT id, name, email, provider, provider_id, created_at FROM users WHERE id = ?",
+                "SELECT id, name, email, provider, provider_id, jellyfin_user_id, created_at FROM users WHERE id = ?",
                 userEntityRowMapper,
                 id,
             )
@@ -95,7 +98,7 @@ class UserRepository(
     override fun findAll(): List<User> =
         jdbc
             .query(
-                "SELECT id, name, email, provider, provider_id, created_at FROM users",
+                "SELECT id, name, email, provider, provider_id, jellyfin_user_id, created_at FROM users",
                 userEntityRowMapper,
             ).map { it.toDomain() }
 
@@ -110,8 +113,7 @@ class UserRepository(
         val entities =
             jdbc.query(
                 """
-                SELECT id, name, email, provider, provider_id, created_at
-                FROM users
+                SELECT id, name, email, provider, provider_id, jellyfin_user_id, created_at FROM users
                 WHERE provider = ? AND provider_id = ?
                 """.trimIndent(),
                 userEntityRowMapper,

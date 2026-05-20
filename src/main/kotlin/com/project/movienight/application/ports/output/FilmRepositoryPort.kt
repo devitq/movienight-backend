@@ -10,5 +10,7 @@ interface FilmRepositoryPort {
 
     fun findAll(): List<Film>
 
+    fun findByTitle(title: String): Film?
+
     fun deleteById(id: UUID)
 }

@@ -8,13 +8,19 @@ import com.project.movienight.application.ports.input.CreateFilmUseCase
 import com.project.movienight.application.ports.input.DeleteFilmUseCase
 import com.project.movienight.application.ports.input.EditFilmCommand
 import com.project.movienight.application.ports.input.EditFilmUseCase
+import com.project.movienight.application.ports.input.GetAllFilmsUseCase
+import com.project.movienight.application.ports.input.GetFilmByIdUseCase
+import com.project.movienight.application.ports.input.SearchFilmByTitleUseCase
 import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
@@ -25,6 +31,9 @@ class FilmController(
     private val createFilmUseCase: CreateFilmUseCase,
     private val editFilmUseCase: EditFilmUseCase,
     private val deleteFilmUseCase: DeleteFilmUseCase,
+    private val getFilmByIdUseCase: GetFilmByIdUseCase,
+    private val getAllFilmsUseCase: GetAllFilmsUseCase,
+    private val searchFilmByTitleUseCase: SearchFilmByTitleUseCase,
 ) {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -61,4 +70,24 @@ class FilmController(
     fun delete(
         @PathVariable id: UUID,
     ) = deleteFilmUseCase.delete(id)
+
+    @GetMapping("/{id}")
+    fun getById(
+        @PathVariable id: UUID,
+    ): FilmResponse = FilmResponse.fromDomain(getFilmByIdUseCase.getById(id))
+
+    @GetMapping
+    fun getAll(): List<FilmResponse> = getAllFilmsUseCase.getAll().map { FilmResponse.fromDomain(it) }
+
+    @GetMapping("/search")
+    fun searchByTitle(
+        @RequestParam title: String,
+    ): ResponseEntity<FilmResponse> {
+        val film = searchFilmByTitleUseCase.searchByTitle(title)
+        return if (film != null) {
+            ResponseEntity.ok(FilmResponse.fromDomain(film))
+        } else {
+            ResponseEntity.notFound().build()
+        }
+    }
 }

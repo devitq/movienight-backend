@@ -206,6 +206,16 @@ class FilmRepository(
             filmRowMapper,
         )
 
+    override fun findByTitle(title: String): Film? {
+        val films =
+            jdbc.query(
+                "SELECT id, title, description FROM films WHERE title = ? ORDER BY id LIMIT 1",
+                filmRowMapper,
+                title,
+            )
+        return films.firstOrNull()
+    }
+
     override fun deleteById(id: UUID) {
         jdbc.update(
             """

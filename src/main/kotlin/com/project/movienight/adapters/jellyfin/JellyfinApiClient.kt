@@ -2,6 +2,9 @@ package com.project.movienight.adapters.jellyfin
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.project.movienight.application.ports.output.JellyfinLibraryItemSnapshot
+import com.project.movienight.application.ports.output.JellyfinRemoteUser
+import com.project.movienight.application.ports.output.JellyfinSyncSourcePort
 import com.project.movienight.config.JellyfinIntegrationProperties
 import com.project.movienight.domain.model.ContentType
 import org.springframework.stereotype.Service
@@ -11,39 +14,18 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.Duration
 
-data class JellyfinRemoteUser(
-    val id: String,
-    val name: String,
-)
-
-data class JellyfinLibraryItemSnapshot(
-    val jellyfinItemId: String,
-    val title: String,
-    val description: String,
-    val contentType: ContentType,
-    val releaseYear: Int?,
-    val genres: List<String>,
-    val cast: List<String>,
-    val directors: List<String>,
-    val platformRating: Double?,
-    val imdbRating: Double?,
-    val externalUrl: String?,
-    val jellyfinLibraryId: String?,
-    val isPlayed: Boolean,
-)
-
 @Service
 class JellyfinApiClient(
     private val properties: JellyfinIntegrationProperties,
     private val objectMapper: ObjectMapper,
-) {
+) : JellyfinSyncSourcePort {
     private val httpClient: HttpClient =
         HttpClient
             .newBuilder()
             .connectTimeout(Duration.ofMillis(properties.requestTimeoutMs))
             .build()
 
-    fun fetchUsers(): List<JellyfinRemoteUser> =
+    override fun fetchUsers(): List<JellyfinRemoteUser> =
         request("Users")
             .asItems()
             .mapNotNull { node ->
@@ -51,7 +33,7 @@ class JellyfinApiClient(
                 JellyfinRemoteUser(id = id, name = node.fieldText("Name") ?: id)
             }
 
-    fun fetchLibraryItems(userId: String): List<JellyfinLibraryItemSnapshot> =
+    override fun fetchLibraryItems(userId: String): List<JellyfinLibraryItemSnapshot> =
         @Suppress("MaxLineLength")
         request(
             "Users/$userId/Items?Recursive=true&IncludeItemTypes=Movie,Series,Episode&Fields=Genres,People,ProviderIds,Overview,ProductionYear,CommunityRating,OfficialRating,ParentId,UserData",

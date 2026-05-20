@@ -1,6 +1,5 @@
 package com.project.movienight.application.services
 
-import com.project.movienight.adapters.metrics.BusinessMetricsService
 import com.project.movienight.application.ports.input.AddFilmToLibraryCommand
 import com.project.movienight.application.ports.input.AddFilmToLibraryUseCase
 import com.project.movienight.application.ports.input.CreateFilmLibraryCommand
@@ -12,6 +11,7 @@ import com.project.movienight.application.ports.input.MarkFilmViewedCommand
 import com.project.movienight.application.ports.input.MarkFilmViewedUseCase
 import com.project.movienight.application.ports.input.RemoveFilmFromLibraryCommand
 import com.project.movienight.application.ports.input.RemoveFilmFromLibraryUseCase
+import com.project.movienight.application.ports.output.BusinessMetricsPort
 import com.project.movienight.application.ports.output.FilmLibraryRepositoryPort
 import com.project.movienight.application.ports.output.IdGenerator
 import com.project.movienight.domain.exception.DomainException
@@ -25,7 +25,7 @@ import java.util.UUID
 class FilmLibraryService(
     private val filmLibraryRepository: FilmLibraryRepositoryPort,
     private val idGenerator: IdGenerator,
-    private val businessMetricsService: BusinessMetricsService,
+    private val businessMetricsService: BusinessMetricsPort,
 ) : CreateFilmLibraryUseCase,
     AddFilmToLibraryUseCase,
     MarkFilmViewedUseCase,

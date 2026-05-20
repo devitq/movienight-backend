@@ -1,10 +1,10 @@
 package com.project.movienight.application.services
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.project.movienight.adapters.metrics.BusinessMetricsService
-import com.project.movienight.adapters.persistence.jdbc.JellyfinEventRepository
 import com.project.movienight.application.ports.input.MarkFilmViewedCommand
 import com.project.movienight.application.ports.input.MarkFilmViewedUseCase
+import com.project.movienight.application.ports.output.BusinessMetricsPort
+import com.project.movienight.application.ports.output.JellyfinEventRepositoryPort
 import com.project.movienight.application.ports.output.FilmRepositoryPort
 import com.project.movienight.application.ports.output.UserRepositoryPort
 import org.springframework.stereotype.Service
@@ -12,12 +12,12 @@ import java.time.OffsetDateTime
 
 @Service
 class JellyfinEventService(
-    private val jellyfinEventRepository: JellyfinEventRepository,
+    private val jellyfinEventRepository: JellyfinEventRepositoryPort,
     private val userRepository: UserRepositoryPort,
     private val filmRepository: FilmRepositoryPort,
     private val markFilmViewedUseCase: MarkFilmViewedUseCase,
     private val objectMapper: ObjectMapper,
-    private val businessMetricsService: BusinessMetricsService,
+    private val businessMetricsService: BusinessMetricsPort,
 ) {
     private val playbackEventTypes = setOf("playback.ended", "playback.stopped", "playback.completed")
 

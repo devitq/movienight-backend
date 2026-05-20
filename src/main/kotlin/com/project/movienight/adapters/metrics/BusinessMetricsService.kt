@@ -1,5 +1,6 @@
 package com.project.movienight.adapters.metrics
 
+import com.project.movienight.application.ports.output.BusinessMetricsPort
 import com.project.movienight.domain.model.JellyfinSyncSummary
 import com.project.movienight.domain.model.RecommendationEventType
 import io.micrometer.core.instrument.Counter
@@ -33,7 +34,7 @@ class BusinessMetricsService(
 
     private val backendWriteFailures: Counter = meterRegistry.counter("business_jellyfin_backend_write_failures_total")
 
-    fun recordRecommendationRequest() {
+    override fun recordRecommendationRequest() {
         recommendationRequests.increment()
     }
 
@@ -49,11 +50,11 @@ class BusinessMetricsService(
         ratingsSubmitted.increment()
     }
 
-    fun recordLibraryEvent() {
+    override fun recordLibraryEvent() {
         libraryEvents.increment()
     }
 
-    fun recordJellyfinSync(summary: JellyfinSyncSummary) {
+    override fun recordJellyfinSync(summary: JellyfinSyncSummary) {
         jellyfinSyncRuns.increment()
         jellyfinSyncedUsers.increment(summary.syncedUsers.toDouble())
         jellyfinSkippedUsers.increment(summary.skippedUsers.toDouble())
@@ -61,15 +62,15 @@ class BusinessMetricsService(
         jellyfinSyncDuration.record(summary.durationMs, java.util.concurrent.TimeUnit.MILLISECONDS)
     }
 
-    fun recordJellyfinSyncFailure() {
+    override fun recordJellyfinSyncFailure() {
         jellyfinSyncFailures.increment()
     }
 
-    fun recordJellyfinUnmappedUser() {
+    override fun recordJellyfinUnmappedUser() {
         jellyfinUnmappedUsersGaugeValue.incrementAndGet()
     }
 
-    fun recordBackendWriteFailure() {
+    override fun recordBackendWriteFailure() {
         backendWriteFailures.increment()
     }
 }

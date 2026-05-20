@@ -1,5 +1,6 @@
 package com.project.movienight.adapters.persistence.jdbc
 
+import com.project.movienight.application.ports.output.JellyfinEventRepositoryPort
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Repository
@@ -7,8 +8,8 @@ import org.springframework.stereotype.Repository
 @Repository
 class JellyfinEventRepository(
     private val jdbc: NamedParameterJdbcTemplate,
-) {
-    fun save(
+) : JellyfinEventRepositoryPort {
+    override fun save(
         eventId: String,
         serverId: String?,
         eventType: String,
@@ -37,7 +38,7 @@ class JellyfinEventRepository(
         return jdbc.update(sql, params)
     }
 
-    fun delete(eventId: String) {
+    override fun delete(eventId: String) {
         val sql = "DELETE FROM jellyfin_events WHERE event_id = :eventId"
         val params = MapSqlParameterSource().addValue("eventId", eventId)
         jdbc.update(sql, params)

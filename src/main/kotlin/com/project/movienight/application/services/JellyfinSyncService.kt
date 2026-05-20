@@ -1,13 +1,13 @@
 package com.project.movienight.application.services
 
-import com.project.movienight.adapters.jellyfin.JellyfinApiClient
-import com.project.movienight.adapters.jellyfin.JellyfinLibraryItemSnapshot
-import com.project.movienight.adapters.jellyfin.JellyfinRemoteUser
-import com.project.movienight.adapters.metrics.BusinessMetricsService
+import com.project.movienight.application.ports.output.BusinessMetricsPort
 import com.project.movienight.application.ports.output.FilmLibraryRepositoryPort
 import com.project.movienight.application.ports.output.FilmRepositoryPort
 import com.project.movienight.application.ports.output.IdGenerator
 import com.project.movienight.application.ports.output.JellyfinSyncStateRepositoryPort
+import com.project.movienight.application.ports.output.JellyfinLibraryItemSnapshot
+import com.project.movienight.application.ports.output.JellyfinRemoteUser
+import com.project.movienight.application.ports.output.JellyfinSyncSourcePort
 import com.project.movienight.application.ports.output.UserRepositoryPort
 import com.project.movienight.config.JellyfinIntegrationProperties
 import com.project.movienight.domain.model.ContentType
@@ -24,13 +24,13 @@ import java.time.LocalDateTime
 @Service
 class JellyfinSyncService(
     private val properties: JellyfinIntegrationProperties,
-    private val jellyfinApiClient: JellyfinApiClient,
+    private val jellyfinApiClient: JellyfinSyncSourcePort,
     private val userRepository: UserRepositoryPort,
     private val filmRepository: FilmRepositoryPort,
     private val filmLibraryRepository: FilmLibraryRepositoryPort,
     private val syncStateRepository: JellyfinSyncStateRepositoryPort,
     private val idGenerator: IdGenerator,
-    private val businessMetricsService: BusinessMetricsService,
+    private val businessMetricsService: BusinessMetricsPort,
 ) {
     @Scheduled(fixedDelayString = "\${integrations.jellyfin.sync-interval-ms:1800000}")
     fun scheduledSync() {

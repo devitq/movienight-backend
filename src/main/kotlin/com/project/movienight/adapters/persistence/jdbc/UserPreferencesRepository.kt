@@ -32,7 +32,12 @@ class UserPreferencesRepository(
             jdbc.update(
                 """
                 UPDATE user_preferences
-                SET weighted_genres = ?, plot_types = ?, eras = ?, cast_and_directors = ?, moods = ?, content_types = ?
+                SET weighted_genres = ?,
+                    plot_types = ?,
+                    eras = ?,
+                    cast_and_directors = ?,
+                    moods = ?,
+                    content_types = ?
                 WHERE user_id = ?
                 """.trimIndent(),
                 entity.weightedGenres,
@@ -47,7 +52,15 @@ class UserPreferencesRepository(
         if (updatedRows == 0) {
             jdbc.update(
                 """
-                INSERT INTO user_preferences (user_id, weighted_genres, plot_types, eras, cast_and_directors, moods, content_types)
+                INSERT INTO user_preferences (
+                    user_id,
+                    weighted_genres,
+                    plot_types,
+                    eras,
+                    cast_and_directors,
+                    moods,
+                    content_types
+                )
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """.trimIndent(),
                 entity.userId,
@@ -66,7 +79,17 @@ class UserPreferencesRepository(
     override fun findByUserId(userId: UUID): UserPreferences? =
         jdbc
             .query(
-                "SELECT user_id, weighted_genres, plot_types, eras, cast_and_directors, moods, content_types FROM user_preferences WHERE user_id = ?",
+                """
+                SELECT user_id,
+                       weighted_genres,
+                       plot_types,
+                       eras,
+                       cast_and_directors,
+                       moods,
+                       content_types
+                FROM user_preferences
+                WHERE user_id = ?
+                """.trimIndent(),
                 rowMapper,
                 userId,
             ).firstOrNull()

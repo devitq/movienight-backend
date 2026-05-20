@@ -33,8 +33,11 @@ class FilmRatingRepository(
             jdbc.update(
                 """
                 UPDATE film_ratings
-                SET score = ?, note = ?, updated_at = ?
-                WHERE user_id = ? AND film_id = ?
+                SET score = ?,
+                    note = ?,
+                    updated_at = ?
+                WHERE user_id = ?
+                  AND film_id = ?
                 """.trimIndent(),
                 entity.score,
                 entity.note,
@@ -46,7 +49,15 @@ class FilmRatingRepository(
         if (updatedRows == 0) {
             jdbc.update(
                 """
-                INSERT INTO film_ratings (id, user_id, film_id, score, note, created_at, updated_at)
+                INSERT INTO film_ratings (
+                    id,
+                    user_id,
+                    film_id,
+                    score,
+                    note,
+                    created_at,
+                    updated_at
+                )
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """.trimIndent(),
                 entity.id,
@@ -65,7 +76,17 @@ class FilmRatingRepository(
     override fun findByUserId(userId: UUID): List<FilmRating> =
         jdbc
             .query(
-                "SELECT id, user_id, film_id, score, note, created_at, updated_at FROM film_ratings WHERE user_id = ?",
+                """
+                SELECT id,
+                       user_id,
+                       film_id,
+                       score,
+                       note,
+                       created_at,
+                       updated_at
+                FROM film_ratings
+                WHERE user_id = ?
+                """.trimIndent(),
                 rowMapper,
                 userId,
             ).map { it.toDomain() }
@@ -76,7 +97,18 @@ class FilmRatingRepository(
     ): FilmRating? =
         jdbc
             .query(
-                "SELECT id, user_id, film_id, score, note, created_at, updated_at FROM film_ratings WHERE user_id = ? AND film_id = ?",
+                """
+                SELECT id,
+                       user_id,
+                       film_id,
+                       score,
+                       note,
+                       created_at,
+                       updated_at
+                FROM film_ratings
+                WHERE user_id = ?
+                  AND film_id = ?
+                """.trimIndent(),
                 rowMapper,
                 userId,
                 filmId,

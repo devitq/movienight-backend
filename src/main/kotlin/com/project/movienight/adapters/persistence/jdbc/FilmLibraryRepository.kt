@@ -70,7 +70,10 @@ class FilmLibraryRepository(
     ): FilmLibrary? {
         val entries =
             jdbc.query(
-                "SELECT id, user_id, film_id, comment, is_viewed, watched_at FROM favorites WHERE user_id = ? AND film_id = ?",
+                """
+                SELECT id, user_id, film_id, comment, is_viewed, watched_at
+                FROM favorites WHERE user_id = ? AND film_id = ?
+                """.trimIndent(),
                 filmLibraryRowMapper,
                 userId,
                 filmId,

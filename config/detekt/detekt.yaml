@@ -7,3 +7,12 @@ comments:
     active: false
   UndocumentedPublicProperty:
     active: false
+
+style:
+  MagicNumber:
+    active: false
+  ReturnCount:
+    max: 3
+
+complexity:
+  active: false

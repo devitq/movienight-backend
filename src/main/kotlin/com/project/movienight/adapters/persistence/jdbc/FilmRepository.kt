@@ -41,7 +41,18 @@ class FilmRepository(
             jdbc.update(
                 """
                 UPDATE films
-                SET title = ?, description = ?, content_type = ?, release_year = ?, genres = ?, cast_members = ?, directors = ?, imdb_rating = ?, platform_rating = ?, external_url = ?, jellyfin_item_id = ?, jellyfin_library_id = ?
+                SET title = ?,
+                    description = ?,
+                    content_type = ?,
+                    release_year = ?,
+                    genres = ?,
+                    cast_members = ?,
+                    directors = ?,
+                    imdb_rating = ?,
+                    platform_rating = ?,
+                    external_url = ?,
+                    jellyfin_item_id = ?,
+                    jellyfin_library_id = ?
                 WHERE id = ?
                 """.trimIndent(),
                 film.title,
@@ -61,7 +72,21 @@ class FilmRepository(
         if (updatedRows == 0) {
             jdbc.update(
                 """
-                INSERT INTO films (id, title, description, content_type, release_year, genres, cast_members, directors, imdb_rating, platform_rating, external_url, jellyfin_item_id, jellyfin_library_id)
+                INSERT INTO films (
+                    id,
+                    title,
+                    description,
+                    content_type,
+                    release_year,
+                    genres,
+                    cast_members,
+                    directors,
+                    imdb_rating,
+                    platform_rating,
+                    external_url,
+                    jellyfin_item_id,
+                    jellyfin_library_id
+                )
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """.trimIndent(),
                 film.id,
@@ -85,7 +110,23 @@ class FilmRepository(
     override fun findById(id: UUID): Film? {
         val films =
             jdbc.query(
-                "SELECT id, title, description, content_type, release_year, genres, cast_members, directors, imdb_rating, platform_rating, external_url, jellyfin_item_id, jellyfin_library_id FROM films WHERE id = ?",
+                """
+                SELECT id,
+                       title,
+                       description,
+                       content_type,
+                       release_year,
+                       genres,
+                       cast_members,
+                       directors,
+                       imdb_rating,
+                       platform_rating,
+                       external_url,
+                       jellyfin_item_id,
+                       jellyfin_library_id
+                FROM films
+                WHERE id = ?
+                """.trimIndent(),
                 filmRowMapper,
                 id,
             )
@@ -95,7 +136,23 @@ class FilmRepository(
     override fun findByJellyfinItemId(jellyfinItemId: String): Film? {
         val films =
             jdbc.query(
-                "SELECT id, title, description, content_type, release_year, genres, cast_members, directors, imdb_rating, platform_rating, external_url, jellyfin_item_id, jellyfin_library_id FROM films WHERE jellyfin_item_id = ?",
+                """
+                SELECT id,
+                       title,
+                       description,
+                       content_type,
+                       release_year,
+                       genres,
+                       cast_members,
+                       directors,
+                       imdb_rating,
+                       platform_rating,
+                       external_url,
+                       jellyfin_item_id,
+                       jellyfin_library_id
+                FROM films
+                WHERE jellyfin_item_id = ?
+                """.trimIndent(),
                 filmRowMapper,
                 jellyfinItemId,
             )
@@ -105,7 +162,23 @@ class FilmRepository(
     override fun findByJellyfinLibraryId(jellyfinLibraryId: String): Film? {
         val films =
             jdbc.query(
-                "SELECT id, title, description, content_type, release_year, genres, cast_members, directors, imdb_rating, platform_rating, external_url, jellyfin_item_id, jellyfin_library_id FROM films WHERE jellyfin_library_id = ?",
+                """
+                SELECT id,
+                       title,
+                       description,
+                       content_type,
+                       release_year,
+                       genres,
+                       cast_members,
+                       directors,
+                       imdb_rating,
+                       platform_rating,
+                       external_url,
+                       jellyfin_item_id,
+                       jellyfin_library_id
+                FROM films
+                WHERE jellyfin_library_id = ?
+                """.trimIndent(),
                 filmRowMapper,
                 jellyfinLibraryId,
             )
@@ -114,11 +187,32 @@ class FilmRepository(
 
     override fun findAll(): List<Film> =
         jdbc.query(
-            "SELECT id, title, description, content_type, release_year, genres, cast_members, directors, imdb_rating, platform_rating, external_url, jellyfin_item_id, jellyfin_library_id FROM films",
+            """
+            SELECT id,
+                   title,
+                   description,
+                   content_type,
+                   release_year,
+                   genres,
+                   cast_members,
+                   directors,
+                   imdb_rating,
+                   platform_rating,
+                   external_url,
+                   jellyfin_item_id,
+                   jellyfin_library_id
+            FROM films
+            """.trimIndent(),
             filmRowMapper,
         )
 
     override fun deleteById(id: UUID) {
-        jdbc.update("DELETE FROM films WHERE id = ?", id)
+        jdbc.update(
+            """
+            DELETE FROM films
+            WHERE id = ?
+            """.trimIndent(),
+            id,
+        )
     }
 }

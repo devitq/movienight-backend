@@ -59,9 +59,32 @@ public class MovieNightSyncService
 
         foreach (var item in items)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (item is not Movie movie) continue;
 
             var jellyfinItemId = movie.Id.ToString("N");
+            var userStates = new List<object>();
+
+            foreach (var user in users)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var userData = _userDataManager.GetUserData(user, movie);
+                if (userData is null || (!userData.Played && userData.PlayCount == 0 && userData.LastPlayedDate is null && userData.Rating is null))
+                {
+                    continue;
+                }
+
+                userStates.Add(new
+                {
+                    jellyfinUserId = user.Id.ToString("N"),
+                    isViewed = userData.Played,
+                    playCount = userData.PlayCount,
+                    lastPlayedAt = userData.LastPlayedDate,
+                    userRating = userData.Rating
+                });
+            }
 
             var itemData = new Dictionary<string, object?>
             {
@@ -74,16 +97,7 @@ public class MovieNightSyncService
                 ["genres"] = movie.Genres,
                 ["imdbId"] = movie.GetProviderId(MetadataProvider.Imdb),
                 ["tmdbId"] = movie.GetProviderId(MetadataProvider.Tmdb),
-                ["userStates"] = users.Select(u => {
-                    var userData = _userDataManager.GetUserData(u, movie);
-                    return new {
-                        jellyfinUserId = u.Id.ToString("N"),
-                        isViewed = userData?.Played ?? false,
-                        playCount = userData?.PlayCount ?? 0,
-                        lastPlayedAt = userData?.LastPlayedDate,
-                        userRating = userData?.Rating
-                    };
-                }).ToList()
+                ["userStates"] = userStates
             };
 
             syncItems.Add(itemData);

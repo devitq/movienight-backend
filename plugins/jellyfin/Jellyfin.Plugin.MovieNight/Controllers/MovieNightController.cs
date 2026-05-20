@@ -1,4 +1,5 @@
 using System;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.MovieNight.Services;
@@ -88,7 +89,12 @@ public class MovieNightController : ControllerBase
         [FromQuery] int limit = 10,
         CancellationToken cancellationToken = default)
     {
-        return await _backendClient.GetRecommendationsAsync(userId, contentType, mood, limit, cancellationToken).ConfigureAwait(false);
+        if (!TryValidateCurrentUserId(userId, out var authenticatedUserId, out var errorResult))
+        {
+            return errorResult!;
+        }
+
+        return await _backendClient.GetRecommendationsAsync(authenticatedUserId, contentType, mood, limit, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -101,7 +107,12 @@ public class MovieNightController : ControllerBase
         [FromBody] RatingRequest request,
         CancellationToken cancellationToken)
     {
-        await _backendClient.PostRatingAsync(userId, filmId, request.Score, request.Note, cancellationToken).ConfigureAwait(false);
+        if (!TryValidateCurrentUserId(userId, out var authenticatedUserId, out var errorResult))
+        {
+            return errorResult!;
+        }
+
+        await _backendClient.PostRatingAsync(authenticatedUserId, filmId, request.Score, request.Note, cancellationToken).ConfigureAwait(false);
         return Ok();
     }
 
@@ -115,8 +126,41 @@ public class MovieNightController : ControllerBase
         [FromBody] ViewedRequest request,
         CancellationToken cancellationToken)
     {
-        await _backendClient.MarkViewedAsync(userId, filmId, request.WatchedAt, cancellationToken).ConfigureAwait(false);
+        if (!TryValidateCurrentUserId(userId, out var authenticatedUserId, out var errorResult))
+        {
+            return errorResult!;
+        }
+
+        await _backendClient.MarkViewedAsync(authenticatedUserId, filmId, request.WatchedAt, cancellationToken).ConfigureAwait(false);
         return Ok();
+    }
+
+    private bool TryValidateCurrentUserId(string routeUserId, out string authenticatedUserId, out ActionResult? errorResult)
+    {
+        authenticatedUserId = NormalizeId(
+            HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier) ??
+            HttpContext.User.FindFirstValue("JellyfinUserId") ??
+            HttpContext.User.FindFirstValue("UserId"));
+        if (string.IsNullOrWhiteSpace(authenticatedUserId))
+        {
+            errorResult = Unauthorized();
+            return false;
+        }
+
+        var normalizedRouteUserId = NormalizeId(routeUserId);
+        if (!string.Equals(authenticatedUserId, normalizedRouteUserId, StringComparison.OrdinalIgnoreCase))
+        {
+            errorResult = Forbid();
+            return false;
+        }
+
+        errorResult = null;
+        return true;
+    }
+
+    private static string NormalizeId(string? value)
+    {
+        return Guid.TryParse(value, out var parsedGuid) ? parsedGuid.ToString("N") : string.Empty;
     }
 }
 

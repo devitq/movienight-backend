@@ -46,13 +46,22 @@
 
     function getItemIdFromUrl() {
         const params = new URLSearchParams(window.location.search);
-        return params.get('id');
+        return normalizeJellyfinId(params.get('id'));
+    }
+
+    function normalizeJellyfinId(value) {
+        if (!value) {
+            return null;
+        }
+
+        const normalized = value.replace(/-/g, '').toLowerCase();
+        return /^[0-9a-f]{32}$/.test(normalized) ? normalized : null;
     }
 
     async function showRecommendation() {
         const userId = ApiClient.getCurrentUserId();
         try {
-            const response = await ApiClient.getJSON(ApiClient.getUrl(`MovieNight/Users/${userId}/Recommendations`));
+            const response = await ApiClient.getJSON(ApiClient.getUrl(`MovieNight/Users/${encodeURIComponent(userId)}/Recommendations`));
             const recommendations = typeof response === 'string' ? JSON.parse(response) : response;
 
             if (recommendations && recommendations.length > 0) {
@@ -77,7 +86,7 @@
         try {
             await ApiClient.ajax({
                 type: 'POST',
-                url: ApiClient.getUrl(`MovieNight/Users/${userId}/Ratings/Films/${itemId}`),
+                url: ApiClient.getUrl(`MovieNight/Users/${encodeURIComponent(userId)}/Ratings/Films/${encodeURIComponent(itemId)}`),
                 data: JSON.stringify({ score: parseInt(score), note: 'From Jellyfin UI' }),
                 contentType: 'application/json'
             });
@@ -88,7 +97,18 @@
         }
     }
 
-    const observer = new MutationObserver(injectUI);
+    let pendingInjection = false;
+    const observer = new MutationObserver(() => {
+        if (pendingInjection) {
+            return;
+        }
+
+        pendingInjection = true;
+        requestAnimationFrame(() => {
+            pendingInjection = false;
+            injectUI();
+        });
+    });
     observer.observe(document.body, { childList: true, subtree: true });
 
     // Initial call

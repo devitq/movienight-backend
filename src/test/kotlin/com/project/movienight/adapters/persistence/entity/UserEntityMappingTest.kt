@@ -18,6 +18,7 @@ class UserEntityMappingTest {
                 email = "john@email.com",
                 provider = "GOOGLE",
                 providerId = "google1234",
+                jellyfinUserId = null,
                 createdAt = LocalDateTime.now(),
             )
         val user = entity.toDomain()
@@ -26,6 +27,7 @@ class UserEntityMappingTest {
         assertEquals(entity.name, user.name)
         assertEquals(entity.email, user.email)
         assertNull(user.library)
+        assertNull(user.jellyfinUserId)
     }
 
     @Test

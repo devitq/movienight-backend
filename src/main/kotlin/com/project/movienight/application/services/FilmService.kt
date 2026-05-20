@@ -40,7 +40,7 @@ class FilmService(
 
         try {
             log.debug(
-                "Create film request received: title='{}', descriptionLength={}",
+                "Create film request received: title='{}', descriptionLength={}'",
                 command.title,
                 command.description.length,
             )
@@ -56,23 +56,29 @@ class FilmService(
                 throw BlockedValueException(target = "Film", field = "description")
             }
 
-        val film =
-            Film(
-                id = idGenerator.generateId(),
-                title = command.title,
-                description = command.description,
-                contentType = command.contentType,
-                releaseYear = command.releaseYear,
-                genres = command.genres,
-                cast = command.cast,
-                directors = command.directors,
-                imdbRating = command.imdbRating,
-                platformRating = command.platformRating,
-                externalUrl = command.externalUrl,
-                jellyfinItemId = command.jellyfinItemId,
-                jellyfinLibraryId = command.jellyfinLibraryId,
-            )
-        return filmRepository.save(film)
+            val film =
+                Film(
+                    id = idGenerator.generateId(),
+                    title = command.title,
+                    description = command.description,
+                    contentType = command.contentType,
+                    releaseYear = command.releaseYear,
+                    genres = command.genres,
+                    cast = command.cast,
+                    directors = command.directors,
+                    imdbRating = command.imdbRating,
+                    platformRating = command.platformRating,
+                    externalUrl = command.externalUrl,
+                    jellyfinItemId = command.jellyfinItemId,
+                    jellyfinLibraryId = command.jellyfinLibraryId,
+                )
+
+            val saved = filmRepository.save(film)
+            filmCreatedCounter.increment()
+            return saved
+        } finally {
+            sample.stop(createFilmTimer)
+        }
     }
 
     override fun edit(
@@ -95,30 +101,35 @@ class FilmService(
                 throw BlockedValueException(target = "Film", field = "description")
             }
 
-            val film = filmRepository.findById(id)
+            var film = filmRepository.findById(id)
 
             if (film == null) {
                 log.debug("Film not found for edit: id='{}'", id)
                 throw EntityNotFoundException(entity = "Film", id = id.toString())
             }
 
-        film =
-            film.copy(
-                title = command.title,
-                description = command.description,
-                contentType = command.contentType,
-                releaseYear = command.releaseYear,
-                genres = command.genres,
-                cast = command.cast,
-                directors = command.directors,
-                imdbRating = command.imdbRating,
-                platformRating = command.platformRating,
-                externalUrl = command.externalUrl,
-                jellyfinItemId = command.jellyfinItemId,
-                jellyfinLibraryId = command.jellyfinLibraryId,
-            )
+            film =
+                film.copy(
+                    title = command.title,
+                    description = command.description,
+                    contentType = command.contentType,
+                    releaseYear = command.releaseYear,
+                    genres = command.genres,
+                    cast = command.cast,
+                    directors = command.directors,
+                    imdbRating = command.imdbRating,
+                    platformRating = command.platformRating,
+                    externalUrl = command.externalUrl,
+                    jellyfinItemId = command.jellyfinItemId,
+                    jellyfinLibraryId = command.jellyfinLibraryId,
+                )
 
-        return filmRepository.save(film)
+            val saved = filmRepository.save(film)
+            filmEditedCounter.increment()
+            return saved
+        } finally {
+            sample.stop(editFilmTimer)
+        }
     }
 
     override fun delete(id: UUID) {

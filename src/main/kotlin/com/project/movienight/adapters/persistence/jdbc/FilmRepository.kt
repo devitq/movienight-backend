@@ -209,7 +209,25 @@ class FilmRepository(
     override fun findByTitle(title: String): Film? {
         val films =
             jdbc.query(
-                "SELECT id, title, description FROM films WHERE title = ? ORDER BY id LIMIT 1",
+                """
+                SELECT id,
+                       title,
+                       description,
+                       content_type,
+                       release_year,
+                       genres,
+                       cast_members,
+                       directors,
+                       imdb_rating,
+                       platform_rating,
+                       external_url,
+                       jellyfin_item_id,
+                       jellyfin_library_id
+                FROM films
+                WHERE title = ?
+                ORDER BY id
+                LIMIT 1
+                """.trimIndent(),
                 filmRowMapper,
                 title,
             )

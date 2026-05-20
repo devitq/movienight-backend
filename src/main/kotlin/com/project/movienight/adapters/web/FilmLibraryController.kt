@@ -36,6 +36,7 @@ class FilmLibraryController(
     private val markFilmViewedUseCase: MarkFilmViewedUseCase,
     private val removeFilmFromLibraryUseCase: RemoveFilmFromLibraryUseCase,
     private val getFilmLibraryUseCase: GetFilmLibraryUseCase,
+    private val getAllFilmsUseCase: GetAllFilmsUseCase,
     private val listFilmLibraryEntriesUseCase: ListFilmLibraryEntriesUseCase,
 ) {
     @PostMapping

@@ -1,0 +1,66 @@
+package com.project.movienight.adapters.metrics
+
+import com.project.movienight.domain.model.JellyfinSyncSummary
+import io.micrometer.core.instrument.Counter
+import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.core.instrument.Timer
+import org.springframework.stereotype.Service
+import java.util.concurrent.atomic.AtomicInteger
+
+@Service
+class BusinessMetricsService(
+    meterRegistry: MeterRegistry,
+) {
+    private val recommendationRequests: Counter = meterRegistry.counter("business_recommendation_requests_total")
+    private val ratingsSubmitted: Counter = meterRegistry.counter("business_ratings_submitted_total")
+    private val libraryEvents: Counter = meterRegistry.counter("business_library_events_total")
+    private val jellyfinSyncRuns: Counter = meterRegistry.counter("business_jellyfin_sync_runs_total")
+    private val jellyfinSyncedUsers: Counter = meterRegistry.counter("business_jellyfin_synced_users_total")
+    private val jellyfinSkippedUsers: Counter = meterRegistry.counter("business_jellyfin_skipped_users_total")
+    private val jellyfinSyncedItems: Counter = meterRegistry.counter("business_jellyfin_synced_items_total")
+    private val jellyfinSyncDuration: Timer =
+        Timer
+            .builder("business_jellyfin_sync_duration_seconds")
+            .publishPercentileHistogram()
+            .register(meterRegistry)
+    private val jellyfinSyncFailures: Counter = meterRegistry.counter("business_jellyfin_sync_failures_total")
+    private val jellyfinUnmappedUsersGaugeValue = AtomicInteger(0)
+
+    init {
+        meterRegistry.gauge("business_jellyfin_unmapped_users", jellyfinUnmappedUsersGaugeValue)
+    }
+
+    private val backendWriteFailures: Counter = meterRegistry.counter("business_jellyfin_backend_write_failures_total")
+
+    fun recordRecommendationRequest() {
+        recommendationRequests.increment()
+    }
+
+    fun recordRatingSubmitted() {
+        ratingsSubmitted.increment()
+    }
+
+    fun recordLibraryEvent() {
+        libraryEvents.increment()
+    }
+
+    fun recordJellyfinSync(summary: JellyfinSyncSummary) {
+        jellyfinSyncRuns.increment()
+        jellyfinSyncedUsers.increment(summary.syncedUsers.toDouble())
+        jellyfinSkippedUsers.increment(summary.skippedUsers.toDouble())
+        jellyfinSyncedItems.increment(summary.syncedItems.toDouble())
+        jellyfinSyncDuration.record(summary.durationMs, java.util.concurrent.TimeUnit.MILLISECONDS)
+    }
+
+    fun recordJellyfinSyncFailure() {
+        jellyfinSyncFailures.increment()
+    }
+
+    fun recordJellyfinUnmappedUser() {
+        jellyfinUnmappedUsersGaugeValue.incrementAndGet()
+    }
+
+    fun recordBackendWriteFailure() {
+        backendWriteFailures.increment()
+    }
+}

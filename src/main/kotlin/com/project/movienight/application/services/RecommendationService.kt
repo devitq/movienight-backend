@@ -4,9 +4,9 @@ import com.project.movienight.adapters.metrics.BusinessMetricsService
 import com.project.movienight.application.ports.input.AcceptRecommendationCommand
 import com.project.movienight.application.ports.input.AcceptRecommendationUseCase
 import com.project.movienight.application.ports.input.GetRecommendationsUseCase
+import com.project.movienight.application.ports.input.RecommendationQuery
 import com.project.movienight.application.ports.input.RejectRecommendationCommand
 import com.project.movienight.application.ports.input.RejectRecommendationUseCase
-import com.project.movienight.application.ports.input.RecommendationQuery
 import com.project.movienight.application.ports.output.FilmLibraryRepositoryPort
 import com.project.movienight.application.ports.output.FilmRatingRepositoryPort
 import com.project.movienight.application.ports.output.FilmRepositoryPort
@@ -179,7 +179,15 @@ class RecommendationService(
         preferences?.eras.orEmpty().forEach { profile.add(feature("era", it), PREFERENCE_ERA_WEIGHT) }
         preferences?.castAndDirectors.orEmpty().forEach { profile.add(feature("person", it), PREFERENCE_PERSON_WEIGHT) }
         preferences?.moods.orEmpty().forEach { profile.add(feature("mood", it), PREFERENCE_MOOD_WEIGHT) }
-        preferences?.contentTypes.orEmpty().forEach { profile.add(feature("type", it.name), PREFERENCE_CONTENT_TYPE_WEIGHT) }
+        preferences
+            ?.contentTypes
+            .orEmpty()
+            .forEach {
+                profile.add(
+                    feature("type", it.name),
+                    PREFERENCE_CONTENT_TYPE_WEIGHT,
+                )
+            }
 
         ratings.forEach { rating ->
             val film = filmsById[rating.filmId] ?: return@forEach
@@ -309,7 +317,13 @@ class RecommendationService(
         film: Film,
         preferences: UserPreferences?,
     ): Double {
-        val preferredGenres = preferences?.weightedGenres.orEmpty().keys.map(::normalize).toSet()
+        val preferredGenres =
+            preferences
+                ?.weightedGenres
+                .orEmpty()
+                .keys
+                .map(::normalize)
+                .toSet()
         val filmGenres = film.genres.map(::normalize).toSet()
         return when {
             preferredGenres.isEmpty() -> BASE_DIVERSITY_SCORE
@@ -423,7 +437,8 @@ class RecommendationService(
         return dot / (leftNorm * rightNorm)
     }
 
-    private fun roundScore(score: Double): Double = kotlin.math.round(score * SCORE_ROUNDING_FACTOR) / SCORE_ROUNDING_FACTOR
+    private fun roundScore(score: Double): Double =
+        kotlin.math.round(score * SCORE_ROUNDING_FACTOR) / SCORE_ROUNDING_FACTOR
 
     private fun Iterable<Double>.averageOrNull(): Double? {
         val values = toList()

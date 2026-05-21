@@ -5,9 +5,9 @@ import com.project.movienight.adapters.web.dto.response.RecommendationResponse
 import com.project.movienight.application.ports.input.AcceptRecommendationCommand
 import com.project.movienight.application.ports.input.AcceptRecommendationUseCase
 import com.project.movienight.application.ports.input.GetRecommendationsUseCase
+import com.project.movienight.application.ports.input.RecommendationQuery
 import com.project.movienight.application.ports.input.RejectRecommendationCommand
 import com.project.movienight.application.ports.input.RejectRecommendationUseCase
-import com.project.movienight.application.ports.input.RecommendationQuery
 import com.project.movienight.config.JellyfinIntegrationProperties
 import com.project.movienight.domain.model.ContentType
 import org.springframework.web.bind.annotation.GetMapping
@@ -36,20 +36,21 @@ class RecommendationController(
         @RequestParam(required = false, defaultValue = "false") libraryOnly: Boolean,
         @RequestParam(required = false, defaultValue = "10") limit: Int,
     ): List<RecommendationResponse> =
-        getRecommendationsUseCase.recommend(
-            RecommendationQuery(
-                userId = userId,
-                contentType = contentType?.let { runCatching { ContentType.valueOf(it.uppercase()) }.getOrNull() },
-                mood = mood,
-                libraryOnly = libraryOnly,
-                limit = limit,
-            ),
-        ).map { recommendation ->
-            RecommendationResponse.fromDomain(
-                recommendation = recommendation,
-                watchUrl = buildWatchUrl(recommendation.film.jellyfinItemId),
-            )
-        }
+        getRecommendationsUseCase
+            .recommend(
+                RecommendationQuery(
+                    userId = userId,
+                    contentType = contentType?.let { runCatching { ContentType.valueOf(it.uppercase()) }.getOrNull() },
+                    mood = mood,
+                    libraryOnly = libraryOnly,
+                    limit = limit,
+                ),
+            ).map { recommendation ->
+                RecommendationResponse.fromDomain(
+                    recommendation = recommendation,
+                    watchUrl = buildWatchUrl(recommendation.film.jellyfinItemId),
+                )
+            }
 
     @PostMapping("/{filmId}/accept")
     fun accept(

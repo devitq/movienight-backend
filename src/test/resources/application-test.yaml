@@ -26,3 +26,7 @@ services:
       - censored
       - epstein
       - python
+
+integrations:
+  jellyfin:
+    web-url: https://jellyfin.example.test

@@ -76,6 +76,7 @@ class RecommendationSmokeTest {
                             imdbRating = 8.7,
                             platformRating = 9.0,
                             externalUrl = "https://example.com/orbital-drift",
+                            jellyfinItemId = "orbital-drift-item",
                         ),
                     )
             }.andExpect {
@@ -154,11 +155,43 @@ class RecommendationSmokeTest {
                 param("limit", "2")
             }.andExpect {
                 status { isOk() }
+                jsonPath("$[0].filmId") { value(firstFilmId.toString()) }
                 jsonPath("$[0].film.id") { value(firstFilmId.toString()) }
+                jsonPath("$[0].watchUrl") {
+                    value("https://jellyfin.example.test/web/#/details?id=orbital-drift-item")
+                }
+                jsonPath("$[0].reasons[0]") { exists() }
+            }
+
+        mockMvc
+            .post("/api/users/$userId/recommendations/$firstFilmId/accept")
+            .andExpect {
+                status { isOk() }
+                jsonPath("$.filmId") { value(firstFilmId.toString()) }
+                jsonPath("$.eventType") { value("ACCEPTED") }
+            }
+
+        mockMvc
+            .post("/api/users/$userId/recommendations/$firstFilmId/reject")
+            .andExpect {
+                status { isOk() }
+                jsonPath("$.filmId") { value(firstFilmId.toString()) }
+                jsonPath("$.eventType") { value("REJECTED") }
+            }
+
+        mockMvc
+            .get("/api/users/$userId/recommendations") {
+                param("contentType", "FILM")
+                param("libraryOnly", "true")
+                param("limit", "2")
+            }.andExpect {
+                status { isOk() }
+                jsonPath("$") { isEmpty() }
             }
     }
 
     private fun cleanDatabase() {
+        jdbcTemplate.execute("DELETE FROM recommendation_events")
         jdbcTemplate.execute("DELETE FROM film_ratings")
         jdbcTemplate.execute("DELETE FROM user_preferences")
         jdbcTemplate.execute("DELETE FROM favorites")

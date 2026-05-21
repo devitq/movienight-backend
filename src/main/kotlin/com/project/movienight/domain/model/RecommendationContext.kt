@@ -6,6 +6,7 @@ data class RecommendationContext(
     val userId: UUID,
     val contentType: ContentType? = null,
     val mood: String? = null,
+    val libraryOnly: Boolean = false,
     val limit: Int = 10,
 )
 

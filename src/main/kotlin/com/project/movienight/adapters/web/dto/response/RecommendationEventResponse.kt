@@ -11,6 +11,11 @@ data class RecommendationEventResponse(
     val filmId: UUID,
     val eventType: RecommendationEventType,
     val score: Double?,
+    val relevanceScore: Double?,
+    val qualityScore: Double?,
+    val contextScore: Double?,
+    val noveltyScore: Double?,
+    val diversityScore: Double?,
     val createdAt: LocalDateTime,
 ) {
     companion object {
@@ -21,6 +26,11 @@ data class RecommendationEventResponse(
                 filmId = event.filmId,
                 eventType = event.eventType,
                 score = event.score,
+                relevanceScore = event.relevanceScore,
+                qualityScore = event.qualityScore,
+                contextScore = event.contextScore,
+                noveltyScore = event.noveltyScore,
+                diversityScore = event.diversityScore,
                 createdAt = event.createdAt,
             )
     }

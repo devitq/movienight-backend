@@ -19,6 +19,11 @@ class RecommendationEventRepository(
             filmId = UUID.fromString(rs.getString("film_id")),
             eventType = RecommendationEventType.valueOf(rs.getString("event_type")),
             score = rs.getObject("score")?.let { (it as Number).toDouble() },
+            relevanceScore = rs.getObject("relevance_score")?.let { (it as Number).toDouble() },
+            qualityScore = rs.getObject("quality_score")?.let { (it as Number).toDouble() },
+            contextScore = rs.getObject("context_score")?.let { (it as Number).toDouble() },
+            noveltyScore = rs.getObject("novelty_score")?.let { (it as Number).toDouble() },
+            diversityScore = rs.getObject("diversity_score")?.let { (it as Number).toDouble() },
             createdAt = rs.getTimestamp("created_at").toLocalDateTime(),
         )
     }
@@ -32,15 +37,25 @@ class RecommendationEventRepository(
                 film_id,
                 event_type,
                 score,
+                relevance_score,
+                quality_score,
+                context_score,
+                novelty_score,
+                diversity_score,
                 created_at
             )
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """.trimIndent(),
             event.id,
             event.userId,
             event.filmId,
             event.eventType.name,
             event.score,
+            event.relevanceScore,
+            event.qualityScore,
+            event.contextScore,
+            event.noveltyScore,
+            event.diversityScore,
             event.createdAt,
         )
         return event
@@ -54,6 +69,11 @@ class RecommendationEventRepository(
                    film_id,
                    event_type,
                    score,
+                   relevance_score,
+                   quality_score,
+                   context_score,
+                   novelty_score,
+                   diversity_score,
                    created_at
             FROM recommendation_events
             WHERE user_id = ?
@@ -62,4 +82,35 @@ class RecommendationEventRepository(
             rowMapper,
             userId,
         )
+
+    override fun findLatestRecommended(
+        userId: UUID,
+        filmId: UUID,
+    ): RecommendationEvent? =
+        jdbc
+            .query(
+                """
+                SELECT id,
+                       user_id,
+                       film_id,
+                       event_type,
+                       score,
+                       relevance_score,
+                       quality_score,
+                       context_score,
+                       novelty_score,
+                       diversity_score,
+                       created_at
+                FROM recommendation_events
+                WHERE user_id = ?
+                  AND film_id = ?
+                  AND event_type = ?
+                ORDER BY created_at DESC
+                LIMIT 1
+                """.trimIndent(),
+                rowMapper,
+                userId,
+                filmId,
+                RecommendationEventType.RECOMMENDED.name,
+            ).firstOrNull()
 }

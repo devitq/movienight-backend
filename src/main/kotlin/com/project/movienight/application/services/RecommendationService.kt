@@ -13,6 +13,7 @@ import com.project.movienight.application.ports.output.FilmRepositoryPort
 import com.project.movienight.application.ports.output.IdGenerator
 import com.project.movienight.application.ports.output.RecommendationEventRepositoryPort
 import com.project.movienight.application.ports.output.UserPreferencesRepositoryPort
+import com.project.movienight.application.ports.output.UserRecommendationWeightsRepositoryPort
 import com.project.movienight.application.ports.output.UserRepositoryPort
 import com.project.movienight.domain.exception.EntityNotFoundException
 import com.project.movienight.domain.model.Film
@@ -22,6 +23,7 @@ import com.project.movienight.domain.model.RecommendationEvent
 import com.project.movienight.domain.model.RecommendationEventType
 import com.project.movienight.domain.model.RecommendationResult
 import com.project.movienight.domain.model.UserPreferences
+import com.project.movienight.domain.model.UserRecommendationWeights
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
@@ -37,6 +39,7 @@ class RecommendationService(
     private val userPreferencesRepository: UserPreferencesRepositoryPort,
     private val userRepository: UserRepositoryPort,
     private val recommendationEventRepository: RecommendationEventRepositoryPort,
+    private val userRecommendationWeightsRepository: UserRecommendationWeightsRepositoryPort,
     private val idGenerator: IdGenerator,
     private val businessMetricsService: BusinessMetricsService,
 ) : GetRecommendationsUseCase,
@@ -56,7 +59,8 @@ class RecommendationService(
         val watchedFilmIds = libraryEntries.filter { it.isViewed }.map { it.filmId }.toSet()
         val films = filmRepository.findAll()
         val filmsById = films.associateBy { it.id }
-        val userProfile = buildUserProfile(preferences, ratings, libraryEntries, filmsById)
+        val weights = findWeights(query.userId)
+        val userProfile = buildUserProfile(preferences, ratings, libraryEntries, filmsById, weights)
 
         val candidates =
             films
@@ -65,20 +69,30 @@ class RecommendationService(
                 .filter { film -> film.id !in watchedFilmIds }
                 .filter { film -> !query.libraryOnly || film.id in libraryFilmIds }
                 .toList()
-        val recommendations =
-            candidates
-                .asSequence()
-                .map { film -> scoreFilm(film, query, preferences, userProfile, film.id in libraryFilmIds) }
-                .sortedWith(compareByDescending<RecommendationResult> { it.score }.thenBy { it.film.title })
+        val scoredCandidates =
+            candidates.map { film ->
+                scoreFilm(film, query, preferences, userProfile, film.id in libraryFilmIds, weights)
+            }
+        val recommendationComparator =
+            compareByDescending<ScoredRecommendation> { it.result.score }.thenBy {
+                it.result.film.title
+            }
+        val scoredRecommendations =
+            scoredCandidates
+                .sortedWith(recommendationComparator)
                 .take(query.limit.coerceAtLeast(1))
-                .toList()
 
-        recommendations.forEach { recommendation ->
+        scoredRecommendations.forEach { recommendation ->
             saveEvent(
                 userId = query.userId,
-                filmId = recommendation.film.id,
+                filmId = recommendation.result.film.id,
                 eventType = RecommendationEventType.RECOMMENDED,
-                score = recommendation.score,
+                score = recommendation.result.score,
+                relevanceScore = recommendation.relevanceScore,
+                qualityScore = recommendation.qualityScore,
+                contextScore = recommendation.contextScore,
+                noveltyScore = recommendation.noveltyScore,
+                diversityScore = recommendation.diversityScore,
             )
         }
 
@@ -90,17 +104,17 @@ class RecommendationService(
             query.libraryOnly,
             query.limit,
             candidates.size,
-            recommendations.size,
+            scoredRecommendations.size,
         )
         if (log.isDebugEnabled) {
             log.debug(
                 "Recommendation top results: userId='{}', results='{}'",
                 query.userId,
-                recommendations.joinToString(separator = ",") { "${it.film.id}:${it.score}" },
+                scoredRecommendations.joinToString(separator = ",") { "${it.result.film.id}:${it.result.score}" },
             )
         }
 
-        return recommendations
+        return scoredRecommendations.map { it.result }
     }
 
     override fun accept(command: AcceptRecommendationCommand): RecommendationEvent =
@@ -127,13 +141,34 @@ class RecommendationService(
         filmRepository.findById(filmId)
             ?: throw EntityNotFoundException(entity = "Film", id = filmId.toString())
 
+        val lastRecommendation = recommendationEventRepository.findLatestRecommended(userId, filmId)
         val event =
             saveEvent(
                 userId = userId,
                 filmId = filmId,
                 eventType = eventType,
-                score = null,
+                score = lastRecommendation?.score,
+                relevanceScore = lastRecommendation?.relevanceScore,
+                qualityScore = lastRecommendation?.qualityScore,
+                contextScore = lastRecommendation?.contextScore,
+                noveltyScore = lastRecommendation?.noveltyScore,
+                diversityScore = lastRecommendation?.diversityScore,
             )
+
+        if (lastRecommendation != null) {
+            updateRecommendationWeights(
+                userId = userId,
+                eventType = eventType,
+                recommendation = lastRecommendation,
+            )
+        } else {
+            log.info(
+                "Recommendation feedback saved without weight update: userId='{}', filmId='{}', eventType='{}'",
+                userId,
+                filmId,
+                eventType,
+            )
+        }
 
         log.info(
             RECOMMENDATION_FEEDBACK_SAVED_LOG,
@@ -150,6 +185,11 @@ class RecommendationService(
         filmId: UUID,
         eventType: RecommendationEventType,
         score: Double?,
+        relevanceScore: Double? = null,
+        qualityScore: Double? = null,
+        contextScore: Double? = null,
+        noveltyScore: Double? = null,
+        diversityScore: Double? = null,
     ): RecommendationEvent =
         recommendationEventRepository.save(
             RecommendationEvent(
@@ -158,15 +198,89 @@ class RecommendationService(
                 filmId = filmId,
                 eventType = eventType,
                 score = score,
+                relevanceScore = relevanceScore,
+                qualityScore = qualityScore,
+                contextScore = contextScore,
+                noveltyScore = noveltyScore,
+                diversityScore = diversityScore,
                 createdAt = LocalDateTime.now(),
             ),
         )
+
+    private fun findWeights(userId: UUID): UserRecommendationWeights =
+        (
+            userRecommendationWeightsRepository.findByUserId(userId)
+                ?: UserRecommendationWeights.defaultFor(userId)
+        ).normalized()
+
+    private fun updateRecommendationWeights(
+        userId: UUID,
+        eventType: RecommendationEventType,
+        recommendation: RecommendationEvent,
+    ) {
+        val current = findWeights(userId)
+        val contributions = scoreContributions(recommendation, current) ?: return
+        val direction =
+            when (eventType) {
+                RecommendationEventType.ACCEPTED -> 1.0
+                RecommendationEventType.REJECTED -> -1.0
+                RecommendationEventType.RECOMMENDED -> return
+            }
+
+        val updated =
+            current
+                .copy(
+                    relevanceWeight = current.relevanceWeight + direction * LEARNING_RATE * contributions.relevance,
+                    qualityWeight = current.qualityWeight + direction * LEARNING_RATE * contributions.quality,
+                    contextWeight = current.contextWeight + direction * LEARNING_RATE * contributions.context,
+                    noveltyWeight = current.noveltyWeight + direction * LEARNING_RATE * contributions.novelty,
+                    diversityWeight = current.diversityWeight + direction * LEARNING_RATE * contributions.diversity,
+                ).normalized(updatedAt = LocalDateTime.now())
+
+        val saved = userRecommendationWeightsRepository.save(updated)
+        businessMetricsService.recordRecommendationWeightsUpdated(eventType)
+        log.info(
+            RECOMMENDATION_WEIGHTS_UPDATED_LOG,
+            userId,
+            eventType,
+            current.hashCode(),
+            saved.hashCode(),
+        )
+    }
+
+    private fun scoreContributions(
+        recommendation: RecommendationEvent,
+        weights: UserRecommendationWeights,
+    ): ScoreContributions? {
+        val rawContributions =
+            listOf(
+                weights.relevanceWeight to recommendation.relevanceScore,
+                weights.qualityWeight to recommendation.qualityScore,
+                weights.contextWeight to recommendation.contextScore,
+                weights.noveltyWeight to recommendation.noveltyScore,
+                weights.diversityWeight to recommendation.diversityScore,
+            ).map { (weight, score) ->
+                weight * (score?.takeIf { value -> value.isFinite() }?.coerceAtLeast(0.0) ?: 0.0)
+            }
+        val total = rawContributions.sum()
+        if (total <= 0.0) {
+            return null
+        }
+        return ScoreContributions(
+            relevance = rawContributions[0] / total,
+            quality = rawContributions[1] / total,
+            context = rawContributions[2] / total,
+            novelty = rawContributions[3] / total,
+            diversity = rawContributions[4] / total,
+        )
+    }
 
     private fun buildUserProfile(
         preferences: UserPreferences?,
         ratings: List<FilmRating>,
         libraryEntries: List<FilmLibrary>,
         filmsById: Map<UUID, Film>,
+        weights: UserRecommendationWeights,
     ): SparseVector {
         val profile = MutableSparseVector()
 
@@ -192,12 +306,12 @@ class RecommendationService(
         ratings.forEach { rating ->
             val film = filmsById[rating.filmId] ?: return@forEach
             val signal = ratingSignal(rating.score)
-            profile.add(buildFilmVector(film).scale(signal))
+            profile.add(buildFilmVector(film, weights).scale(signal))
         }
 
         libraryEntries.filterNot { it.isViewed }.forEach { entry ->
             val film = filmsById[entry.filmId] ?: return@forEach
-            profile.add(buildFilmVector(film).scale(LIBRARY_SIGNAL_WEIGHT))
+            profile.add(buildFilmVector(film, weights).scale(LIBRARY_SIGNAL_WEIGHT))
         }
 
         return profile.toSparseVector()
@@ -209,20 +323,21 @@ class RecommendationService(
         preferences: UserPreferences?,
         userProfile: SparseVector,
         inLibrary: Boolean,
-    ): RecommendationResult {
+        weights: UserRecommendationWeights,
+    ): ScoredRecommendation {
         val reasons = mutableListOf<String>()
-        val filmVector = buildFilmVector(film)
+        val filmVector = buildFilmVector(film, weights)
         val preferenceScore = cosineSimilarity(userProfile, filmVector)
         val qualityScore = qualityScore(film)
         val contextScore = contextScore(film, query, preferences)
         val noveltyScore = if (inLibrary) LIBRARY_NOVELTY_SCORE else CATALOG_NOVELTY_SCORE
         val diversityScore = diversityScore(film, preferences)
         val score =
-            RELEVANCE_WEIGHT * preferenceScore +
-                QUALITY_WEIGHT * qualityScore +
-                CONTEXT_WEIGHT * contextScore +
-                NOVELTY_WEIGHT * noveltyScore +
-                DIVERSITY_WEIGHT * diversityScore
+            weights.relevanceWeight * preferenceScore +
+                weights.qualityWeight * qualityScore +
+                weights.contextWeight * contextScore +
+                weights.noveltyWeight * noveltyScore +
+                weights.diversityWeight * diversityScore
 
         if (preferenceScore > STRONG_REASON_THRESHOLD) {
             reasons += "Similar to user preferences and rating history"
@@ -252,22 +367,32 @@ class RecommendationService(
             reasons += "Baseline recommendation from catalog quality"
         }
 
-        return RecommendationResult(film = film, score = roundScore(score), reasons = reasons.distinct())
+        return ScoredRecommendation(
+            result = RecommendationResult(film = film, score = roundScore(score), reasons = reasons.distinct()),
+            relevanceScore = preferenceScore,
+            qualityScore = qualityScore,
+            contextScore = contextScore,
+            noveltyScore = noveltyScore,
+            diversityScore = diversityScore,
+        )
     }
 
-    private fun buildFilmVector(film: Film): SparseVector {
+    private fun buildFilmVector(
+        film: Film,
+        weights: UserRecommendationWeights,
+    ): SparseVector {
         val vector = MutableSparseVector()
         val normalizedGenres = film.genres.map(::normalize).filter { it.isNotBlank() }
         val plotTokens = tokenize("${film.title} ${film.description}")
         val moods = inferredMoods(film)
         val people = (film.directors + film.cast).map(::normalize).filter { it.isNotBlank() }
 
-        vector.add(feature("type", film.contentType.name), CONTENT_TYPE_VECTOR_WEIGHT)
-        distribute(vector, "genre", normalizedGenres, GENRE_VECTOR_WEIGHT)
-        distribute(vector, "plot", plotTokens, PLOT_VECTOR_WEIGHT)
-        distribute(vector, "mood", moods, MOOD_VECTOR_WEIGHT)
-        film.releaseYear?.let { vector.add(feature("era", decadeOf(it)), ERA_VECTOR_WEIGHT) }
-        distribute(vector, "person", people, PEOPLE_VECTOR_WEIGHT)
+        vector.add(feature("type", film.contentType.name), weights.contentTypeVectorWeight)
+        distribute(vector, "genre", normalizedGenres, weights.genreVectorWeight)
+        distribute(vector, "plot", plotTokens, weights.plotVectorWeight)
+        distribute(vector, "mood", moods, weights.moodVectorWeight)
+        film.releaseYear?.let { vector.add(feature("era", decadeOf(it)), weights.eraVectorWeight) }
+        distribute(vector, "person", people, weights.peopleVectorWeight)
 
         return vector.toSparseVector()
     }
@@ -445,6 +570,23 @@ class RecommendationService(
         return values.takeIf { it.isNotEmpty() }?.average()
     }
 
+    private data class ScoredRecommendation(
+        val result: RecommendationResult,
+        val relevanceScore: Double,
+        val qualityScore: Double,
+        val contextScore: Double,
+        val noveltyScore: Double,
+        val diversityScore: Double,
+    )
+
+    private data class ScoreContributions(
+        val relevance: Double,
+        val quality: Double,
+        val context: Double,
+        val novelty: Double,
+        val diversity: Double,
+    )
+
     private data class SparseVector(
         val values: Map<String, Double>,
     ) {
@@ -477,6 +619,8 @@ class RecommendationService(
                 "libraryOnly={}, limit={}, candidatesCount={}, returnedCount={}"
         private const val RECOMMENDATION_FEEDBACK_SAVED_LOG =
             "Recommendation feedback saved: userId='{}', filmId='{}', eventType='{}'"
+        private const val RECOMMENDATION_WEIGHTS_UPDATED_LOG =
+            "Recommendation weights updated: userId='{}', eventType='{}', oldWeightsHash={}, newWeightsHash={}"
 
         private const val MAX_PREFERENCE_WEIGHT = 5.0
         private const val MAX_RATING_VALUE = 10.0
@@ -486,13 +630,6 @@ class RecommendationService(
         private const val MAX_REASON_ITEMS = 2
         private const val SCORE_ROUNDING_FACTOR = 1000.0
 
-        private const val CONTENT_TYPE_VECTOR_WEIGHT = 0.05
-        private const val GENRE_VECTOR_WEIGHT = 0.25
-        private const val PLOT_VECTOR_WEIGHT = 0.35
-        private const val MOOD_VECTOR_WEIGHT = 0.15
-        private const val ERA_VECTOR_WEIGHT = 0.10
-        private const val PEOPLE_VECTOR_WEIGHT = 0.10
-
         private const val PREFERENCE_PLOT_WEIGHT = 0.6
         private const val PREFERENCE_ERA_WEIGHT = 0.7
         private const val PREFERENCE_PERSON_WEIGHT = 0.8
@@ -500,11 +637,7 @@ class RecommendationService(
         private const val PREFERENCE_CONTENT_TYPE_WEIGHT = 0.5
         private const val LIBRARY_SIGNAL_WEIGHT = 0.25
 
-        private const val RELEVANCE_WEIGHT = 0.55
-        private const val QUALITY_WEIGHT = 0.15
-        private const val CONTEXT_WEIGHT = 0.10
-        private const val NOVELTY_WEIGHT = 0.10
-        private const val DIVERSITY_WEIGHT = 0.10
+        private const val LEARNING_RATE = 0.03
 
         private const val LIBRARY_NOVELTY_SCORE = 0.85
         private const val CATALOG_NOVELTY_SCORE = 0.65

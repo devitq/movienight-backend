@@ -7,4 +7,9 @@ interface RecommendationEventRepositoryPort {
     fun save(event: RecommendationEvent): RecommendationEvent
 
     fun findByUserId(userId: UUID): List<RecommendationEvent>
+
+    fun findLatestRecommended(
+        userId: UUID,
+        filmId: UUID,
+    ): RecommendationEvent?
 }

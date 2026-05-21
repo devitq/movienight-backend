@@ -1,6 +1,7 @@
 package com.project.movienight.adapters.metrics
 
 import com.project.movienight.domain.model.JellyfinSyncSummary
+import com.project.movienight.domain.model.RecommendationEventType
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
@@ -9,7 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 @Service
 class BusinessMetricsService(
-    meterRegistry: MeterRegistry,
+    private val meterRegistry: MeterRegistry,
 ) {
     private val recommendationRequests: Counter = meterRegistry.counter("business_recommendation_requests_total")
     private val ratingsSubmitted: Counter = meterRegistry.counter("business_ratings_submitted_total")
@@ -34,6 +35,14 @@ class BusinessMetricsService(
 
     fun recordRecommendationRequest() {
         recommendationRequests.increment()
+    }
+
+    fun recordRecommendationWeightsUpdated(eventType: RecommendationEventType) {
+        Counter
+            .builder("recommendation_weights_updated_total")
+            .tag("eventType", eventType.name)
+            .register(meterRegistry)
+            .increment()
     }
 
     fun recordRatingSubmitted() {

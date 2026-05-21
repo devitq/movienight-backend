@@ -9,6 +9,11 @@ data class RecommendationEvent(
     val filmId: UUID,
     val eventType: RecommendationEventType,
     val score: Double? = null,
+    val relevanceScore: Double? = null,
+    val qualityScore: Double? = null,
+    val contextScore: Double? = null,
+    val noveltyScore: Double? = null,
+    val diversityScore: Double? = null,
     val createdAt: LocalDateTime = LocalDateTime.now(),
 )
 

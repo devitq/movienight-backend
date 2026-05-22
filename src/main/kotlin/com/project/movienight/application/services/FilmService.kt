@@ -36,25 +36,22 @@ class FilmService(
     private val log = LoggerFactory.getLogger(javaClass)
 
     override fun create(command: CreateFilmCommand): Film {
-        log.info("Creating new film: title='{}', contentType={}", command.title, command.contentType)
-        log.debug(
-            "Create film request details: title='{}', descriptionLength={}, genres={}, releaseYear={}",
-            command.title,
-            command.description.length,
-            command.genres,
-            command.releaseYear,
-        )
-
         val sample = Timer.start(meterRegistry)
 
         try {
+            log.debug(
+                "Create film request received: title='{}', descriptionLength={}",
+                command.title,
+                command.description.length,
+            )
+
             if (filmConfig.isBlocked(command.title)) {
-                log.warn("Film creation blocked: title contains blocked pattern '{}'", command.title)
+                log.debug("Create film blocked by title policy: title='{}'", command.title)
                 filmBlockedCounter.increment()
                 throw BlockedValueException(target = "Film", field = "title")
             }
             if (filmConfig.isBlocked(command.description)) {
-                log.warn("Film creation blocked: description contains blocked pattern")
+                log.debug("Create film blocked by description policy")
                 filmBlockedCounter.increment()
                 throw BlockedValueException(target = "Film", field = "description")
             }
@@ -78,7 +75,6 @@ class FilmService(
 
             val saved = filmRepository.save(film)
             filmCreatedCounter.increment()
-            log.info("Film created successfully: id={}, title='{}'", saved.id, saved.title)
             return saved
         } finally {
             sample.stop(createFilmTimer)
@@ -89,25 +85,18 @@ class FilmService(
         id: UUID,
         command: EditFilmCommand,
     ): Film {
-        log.info("Editing film: id={}", id)
-        log.debug(
-            "Edit film request details: id={}, title='{}', descriptionLength={}, genres={}",
-            id,
-            command.title,
-            command.description.length,
-            command.genres,
-        )
-
         val sample = Timer.start(meterRegistry)
 
         try {
+            log.debug("Edit film with id: {}", id)
+
             if (filmConfig.isBlocked(command.title)) {
-                log.warn("Film edit blocked: title contains blocked pattern '{}'", command.title)
+                log.debug("Edit film blocked by title policy: title='{}'", command.title)
                 filmBlockedCounter.increment()
                 throw BlockedValueException(target = "Film", field = "title")
             }
             if (filmConfig.isBlocked(command.description)) {
-                log.warn("Film edit blocked: description contains blocked pattern")
+                log.debug("Edit film blocked by description policy")
                 filmBlockedCounter.increment()
                 throw BlockedValueException(target = "Film", field = "description")
             }
@@ -115,11 +104,9 @@ class FilmService(
             var film = filmRepository.findById(id)
 
             if (film == null) {
-                log.warn("Film not found for edit: id='{}'", id)
+                log.debug("Film not found for edit: id='{}'", id)
                 throw EntityNotFoundException(entity = "Film", id = id.toString())
             }
-
-            log.debug("Existing film found: id={}, current title='{}'", film.id, film.title)
 
             film =
                 film.copy(
@@ -139,7 +126,6 @@ class FilmService(
 
             val saved = filmRepository.save(film)
             filmEditedCounter.increment()
-            log.info("Film edited successfully: id={}, new title='{}'", saved.id, saved.title)
             return saved
         } finally {
             sample.stop(editFilmTimer)
@@ -147,54 +133,34 @@ class FilmService(
     }
 
     override fun delete(id: UUID) {
-        log.info("Deleting film: id={}", id)
-
         val sample = Timer.start(meterRegistry)
 
         try {
+            log.debug("Delete film with id: {}", id)
+
             val film = filmRepository.findById(id)
 
             if (film == null) {
-                log.warn("Film not found for delete: id='{}'", id)
+                log.debug("Film not found for delete: id='{}'", id)
                 throw EntityNotFoundException(entity = "Film", id = id.toString())
             }
 
-            log.debug("Film found for deletion: id={}, title='{}'", film.id, film.title)
-
             filmRepository.deleteById(id)
+
             filmDeletedCounter.increment()
-            log.info("Film deleted successfully: id={}, title='{}'", id, film.title)
+
+            log.info("Film deleted: id='{}'", id)
         } finally {
             sample.stop(deleteFilmTimer)
         }
     }
 
-    override fun getById(id: UUID): Film {
-        log.debug("Fetching film by id: {}", id)
-        val film =
-            filmRepository.findById(id)
-                ?: throw EntityNotFoundException(entity = "Film", id = id.toString())
-        log.debug("Film found: id={}, title='{}'", film.id, film.title)
-        return film
-    }
+    override fun getById(id: UUID): Film =
+        filmRepository.findById(id) ?: throw EntityNotFoundException(entity = "Film", id = id.toString())
 
-    override fun getAll(): List<Film> {
-        log.debug("Fetching all films")
-        val films = filmRepository.findAll()
-        log.info("Retrieved {} films from database", films.size)
-        return films
-    }
+    override fun getAll(): List<Film> = filmRepository.findAll()
 
-    override fun searchByTitle(title: String): Film? {
-        log.debug("Searching film by title: '{}'", title)
-        val film = filmRepository.findByTitle(title)
-        if (film != null) {
-            log.info("Film found by title '{}': id={}", title, film.id)
-        } else {
-            log.debug("No film found with title: '{}'", title)
-        }
-        return film
-    }
+    override fun searchByTitle(title: String): Film? = filmRepository.findByTitle(title)
 
     private val filmCreatedCounter =
         Counter

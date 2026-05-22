@@ -1,0 +1,39 @@
+{{- if and .Values.observability.enabled .Values.observability.grafana.datasource.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "movienight.fullname" . }}-grafana-datasource
+  labels:
+    {{- include "movienight.componentLabels" (dict "root" . "component" "grafana-datasource") | nindent 4 }}
+    {{- with .Values.observability.grafana.datasource.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- if or .Values.global.annotations .Values.observability.grafana.datasource.annotations }}
+  annotations:
+    {{- with .Values.global.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- with .Values.observability.grafana.datasource.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- end }}
+data:
+  victoriametrics.yaml: |
+    apiVersion: 1
+    prune: true
+
+    datasources:
+      - name: {{ .Values.observability.grafana.datasource.name | quote }}
+        type: prometheus
+        access: proxy
+        orgId: 1
+        uid: {{ .Values.observability.grafana.datasource.uid | quote }}
+        url: {{ include "movienight.victoriaMetricsURL" . | quote }}
+        basicAuth: false
+        isDefault: {{ .Values.observability.grafana.datasource.isDefault }}
+        editable: false
+        jsonData:
+          httpMethod: POST
+          queryTimeout: 10s
+          timeInterval: {{ .Values.observability.vmagent.scrapeInterval | quote }}
+{{- end }}

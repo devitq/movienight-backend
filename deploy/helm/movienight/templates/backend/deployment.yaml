@@ -48,8 +48,25 @@ spec:
             - name: http
               containerPort: {{ .Values.backend.service.port }}
               protocol: TCP
-          {{- if or $postgresEnv .Values.backend.env }}
+            {{- if .Values.backend.management.enabled }}
+            - name: management
+              containerPort: {{ .Values.backend.management.port }}
+              protocol: TCP
+            {{- end }}
+          {{- if or $postgresEnv .Values.backend.env .Values.backend.management.enabled .Values.observability.enabled }}
           env:
+{{- if .Values.backend.management.enabled }}
+            - name: MANAGEMENT_SERVER_PORT
+              value: {{ .Values.backend.management.port | quote }}
+{{- end }}
+{{- if .Values.observability.enabled }}
+            - name: MANAGEMENT_METRICS_TAGS_APPLICATION
+              value: {{ .Values.observability.metrics.applicationTag | quote }}
+{{- if .Values.observability.metrics.httpServerRequestsHistogram }}
+            - name: MANAGEMENT_METRICS_DISTRIBUTION_PERCENTILES_HISTOGRAM_HTTP_SERVER_REQUESTS
+              value: "true"
+{{- end }}
+{{- end }}
 {{- if $postgresEnv }}
 {{- $postgresEnv | nindent 12 }}
 {{- end }}

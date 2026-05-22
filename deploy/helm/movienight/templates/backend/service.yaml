@@ -16,6 +16,12 @@ spec:
       port: {{ .Values.backend.service.port }}
       targetPort: http
       protocol: TCP
+    {{- if .Values.backend.management.enabled }}
+    - name: management
+      port: {{ .Values.backend.management.port }}
+      targetPort: management
+      protocol: TCP
+    {{- end }}
   selector:
     {{- include "movienight.componentSelectorLabels" (dict "root" . "component" "backend") | nindent 4 }}
 {{- end }}

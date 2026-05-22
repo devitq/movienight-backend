@@ -1,0 +1,142 @@
+{{- if and .Values.observability.enabled .Values.observability.victoriaMetrics.enabled }}
+{{- if .Values.observability.victoriaMetrics.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "movienight.victoriaMetricsName" . }}
+  labels:
+    {{- include "movienight.componentLabels" (dict "root" . "component" "victoriametrics") | nindent 4 }}
+  {{- with .Values.global.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.observability.victoriaMetrics.persistence.size }}
+  {{- with .Values.observability.victoriaMetrics.persistence.storageClass }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+---
+{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "movienight.victoriaMetricsName" . }}
+  labels:
+    {{- include "movienight.componentLabels" (dict "root" . "component" "victoriametrics") | nindent 4 }}
+  {{- with .Values.global.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "movienight.componentSelectorLabels" (dict "root" . "component" "victoriametrics") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "movienight.componentSelectorLabels" (dict "root" . "component" "victoriametrics") | nindent 8 }}
+        {{- with .Values.observability.victoriaMetrics.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.observability.victoriaMetrics.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "movienight.serviceAccountName" . }}
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.observability.victoriaMetrics.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: victoriametrics
+          image: "{{ .Values.observability.victoriaMetrics.image.repository }}:{{ .Values.observability.victoriaMetrics.image.tag }}"
+          imagePullPolicy: {{ .Values.observability.victoriaMetrics.image.pullPolicy }}
+          args:
+            - -storageDataPath=/var/lib/victoriametrics
+            - -retentionPeriod={{ .Values.observability.victoriaMetrics.retentionPeriod }}
+            - -httpListenAddr=:{{ .Values.observability.victoriaMetrics.service.port }}
+            {{- with .Values.observability.victoriaMetrics.extraArgs }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.observability.victoriaMetrics.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.observability.victoriaMetrics.service.port }}
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+          {{- with .Values.observability.victoriaMetrics.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/victoriametrics
+      volumes:
+        - name: data
+          {{- if .Values.observability.victoriaMetrics.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "movienight.victoriaMetricsName" . }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+      {{- with .Values.observability.victoriaMetrics.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.observability.victoriaMetrics.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.observability.victoriaMetrics.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "movienight.victoriaMetricsName" . }}
+  labels:
+    {{- include "movienight.componentLabels" (dict "root" . "component" "victoriametrics") | nindent 4 }}
+  {{- with .Values.global.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.observability.victoriaMetrics.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.observability.victoriaMetrics.service.port }}
+      targetPort: http
+      protocol: TCP
+  selector:
+    {{- include "movienight.componentSelectorLabels" (dict "root" . "component" "victoriametrics") | nindent 4 }}
+{{- end }}

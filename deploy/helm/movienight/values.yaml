@@ -48,6 +48,9 @@ backend:
   service:
     type: ClusterIP
     port: 8080
+  management:
+    enabled: true
+    port: 8081
   env:
     - name: SERVER_PORT
       value: "8080"
@@ -73,7 +76,7 @@ backend:
   livenessProbe:
     httpGet:
       path: /actuator/health/liveness
-      port: http
+      port: management
     initialDelaySeconds: 20
     periodSeconds: 10
     timeoutSeconds: 5
@@ -81,7 +84,7 @@ backend:
   readinessProbe:
     httpGet:
       path: /actuator/health/readiness
-      port: http
+      port: management
     initialDelaySeconds: 10
     periodSeconds: 10
     timeoutSeconds: 5
@@ -89,7 +92,7 @@ backend:
   startupProbe:
     httpGet:
       path: /actuator/health
-      port: http
+      port: management
     initialDelaySeconds: 5
     periodSeconds: 5
     timeoutSeconds: 5
@@ -116,3 +119,71 @@ routes:
   backend:
     enabled: true
     pathPrefix: /
+
+observability:
+  enabled: false
+  metrics:
+    applicationTag: movienight
+    httpServerRequestsHistogram: true
+  victoriaMetrics:
+    enabled: true
+    image:
+      repository: docker.io/victoriametrics/victoria-metrics
+      tag: v1.134.0
+      pullPolicy: IfNotPresent
+    service:
+      type: ClusterIP
+      port: 8428
+    retentionPeriod: 30d
+    extraArgs: []
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: ""
+    podAnnotations: {}
+    podLabels: {}
+    resources: {}
+    securityContext: {}
+    podSecurityContext: {}
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+  vmagent:
+    enabled: true
+    image:
+      repository: docker.io/victoriametrics/vmagent
+      tag: v1.135.0
+      pullPolicy: IfNotPresent
+    service:
+      type: ClusterIP
+      port: 8429
+    scrapeInterval: 5s
+    scrapeTimeout: 5s
+    remoteWriteUrl: ""
+    backendJobName: movienight-backend
+    extraArgs: []
+    extraScrapeConfigs: []
+    podAnnotations: {}
+    podLabels: {}
+    resources: {}
+    securityContext: {}
+    podSecurityContext: {}
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+  grafana:
+    datasource:
+      enabled: true
+      name: VictoriaMetrics
+      uid: victoriametrics
+      labels:
+        grafana_datasource: "1"
+      annotations: {}
+      url: ""
+      isDefault: true
+    dashboards:
+      enabled: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: MovieNight

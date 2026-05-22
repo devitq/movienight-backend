@@ -12,8 +12,8 @@ namespace Jellyfin.Plugin.MovieNight.Controllers;
 /// Admin endpoints for the MovieNight plugin.
 /// </summary>
 [ApiController]
-[Authorize]
 [Route("MovieNight")]
+[Authorize(Policy = "DefaultAuthorization")]
 public class MovieNightController : ControllerBase
 {
     private readonly MovieNightBackendClient _backendClient;
@@ -27,6 +27,13 @@ public class MovieNightController : ControllerBase
         _backendClient = backendClient;
         _syncService = syncService;
     }
+
+    /// <summary>
+    /// Ping endpoint for connectivity checks.
+    /// </summary>
+    [HttpGet("Ping")]
+    [AllowAnonymous]
+    public ActionResult Ping() => Ok("Pong");
 
     /// <summary>
     /// Returns plugin status.
@@ -50,6 +57,7 @@ public class MovieNightController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Connection result.</returns>
     [HttpPost("TestConnection")]
+    [Authorize(Policy = "RequiresAdmin")]
     public async Task<ActionResult<MovieNightConnectionResult>> TestConnection(CancellationToken cancellationToken)
     {
         return await _backendClient.TestConnectionAsync(cancellationToken).ConfigureAwait(false);
@@ -61,6 +69,7 @@ public class MovieNightController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Backend response.</returns>
     [HttpPost("Sync")]
+    [Authorize(Policy = "RequiresAdmin")]
     public async Task<ActionResult<string>> Sync(CancellationToken cancellationToken)
     {
         await _syncService.PerformSyncAsync(cancellationToken).ConfigureAwait(false);
@@ -73,6 +82,7 @@ public class MovieNightController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Backend response.</returns>
     [HttpGet("SyncState")]
+    [Authorize(Policy = "RequiresAdmin")]
     public async Task<ActionResult<string>> SyncState(CancellationToken cancellationToken)
     {
         return await _backendClient.GetSyncStateAsync(cancellationToken).ConfigureAwait(false);
@@ -124,6 +134,7 @@ public class MovieNightController : ControllerBase
     /// Creates a new film by generating a .strm file.
     /// </summary>
     [HttpPost("Films")]
+    [Authorize(Policy = "RequiresAdmin")]
     public async Task<ActionResult> CreateFilm([FromBody] CreateFilmRequest request)
     {
         var config = Plugin.Instance?.Configuration;
@@ -143,9 +154,12 @@ public class MovieNightController : ControllerBase
             var fileName = $"{safeTitle}.strm";
             var filePath = Path.Combine(config.StrmOutputPath, fileName);
 
-            // Placeholder content for the .strm file.
-            // In a real scenario, this could be a URL provided in the request.
-            await System.IO.File.WriteAllTextAsync(filePath, "http://placeholder.url/upload_me_later").ConfigureAwait(false);
+            // Use the provided URL or a placeholder if missing
+            var strmContent = string.IsNullOrWhiteSpace(request.Url)
+                ? "http://placeholder.url/upload_me_later"
+                : request.Url;
+
+            await System.IO.File.WriteAllTextAsync(filePath, strmContent).ConfigureAwait(false);
 
             return Ok(new { FilePath = filePath });
         }
@@ -159,7 +173,7 @@ public class MovieNightController : ControllerBase
 /// <summary>
 /// Create film request.
 /// </summary>
-public sealed record CreateFilmRequest(string Title);
+public sealed record CreateFilmRequest(string Title, string? Url);
 
 /// <summary>
 /// Rating request.

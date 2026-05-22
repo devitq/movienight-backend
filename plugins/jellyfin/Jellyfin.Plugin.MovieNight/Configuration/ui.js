@@ -41,21 +41,24 @@
     }
 
     function injectUI() {
-        // 1. Item Detail Page - Add icon button for rating
+        // 1. Item Detail Page
         const detailButtons = document.querySelector('.mainDetailButtons');
-        if (detailButtons && !document.querySelector('.btnMovieNightRate')) {
+        if (detailButtons) {
             const itemId = getItemIdFromUrl();
             if (itemId) {
-                const rateBtn = createIconButton('star_rate', 'Rate on MovieNight', 'btnMovieNightRate', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    showRatingDialog(itemId);
-                });
-                const moreBtn = detailButtons.querySelector('.btnMoreCommands');
-                if (moreBtn) {
-                    detailButtons.insertBefore(rateBtn, moreBtn);
-                } else {
-                    detailButtons.appendChild(rateBtn);
+                // MovieNight Rating
+                if (!document.querySelector('.btnMovieNightRate')) {
+                    const rateBtn = createIconButton('star_rate', 'Rate on MovieNight', 'btnMovieNightRate', (e) => {
+                        e.preventDefault(); e.stopPropagation(); showRatingDialog(itemId);
+                    });
+                    insertInDetailRow(detailButtons, rateBtn);
+                }
+                // Mark Viewed in MovieNight
+                if (!document.querySelector('.btnMovieNightMarkViewed')) {
+                    const viewedBtn = createIconButton('visibility', 'Mark Viewed in MovieNight', 'btnMovieNightMarkViewed', (e) => {
+                        e.preventDefault(); e.stopPropagation(); submitViewed(itemId);
+                    });
+                    insertInDetailRow(detailButtons, viewedBtn);
                 }
             }
         }
@@ -64,12 +67,10 @@
         const toolBar = document.querySelector('.libraryPage:not(.itemDetailPage) .flex.align-items-center.justify-content-center.focuscontainer-x');
         if (toolBar && !document.querySelector('.btnMovieNightRecommend')) {
              toolBar.appendChild(createTextButton('Recommend Film', 'btnMovieNightRecommend', (e) => {
-                 e.preventDefault();
-                 showRecommendation();
+                 e.preventDefault(); showRecommendation();
              }));
              toolBar.appendChild(createTextButton('Add Movie (STRM)', 'btnMovieNightAddMovie', (e) => {
-                 e.preventDefault();
-                 promptAddMovie();
+                 e.preventDefault(); showAddMovieDialog();
              }));
         }
 
@@ -79,12 +80,27 @@
             const section = document.createElement('div');
             section.className = 'verticalSection movieNightHomeButtons';
             section.style.padding = '0 var(--sidePadding)';
-            section.innerHTML = '<h2 class="sectionTitle">MovieNight</h2><div class="movieNightBtnContainer" style="display:flex; flex-wrap:wrap;"></div>';
+            section.innerHTML = `
+                <div class="sectionTitleContainer" style="display:flex; align-items:center; justify-content:space-between;">
+                    <h2 class="sectionTitle">MovieNight</h2>
+                    <span class="movieNightSyncStatus" style="font-size:0.8em; opacity:0.7;"></span>
+                </div>
+                <div class="movieNightBtnContainer" style="display:flex; flex-wrap:wrap; margin-top:0.5em;"></div>
+            `;
             const btnContainer = section.querySelector('.movieNightBtnContainer');
             btnContainer.appendChild(createTextButton('Recommend Film', 'btnMovieNightRecommend', showRecommendation));
-            btnContainer.appendChild(createTextButton('Add Movie (STRM)', 'btnMovieNightAddMovie', promptAddMovie));
+            btnContainer.appendChild(createTextButton('Add Movie (STRM)', 'btnMovieNightAddMovie', showAddMovieDialog));
+            btnContainer.appendChild(createTextButton('Sync Library', 'btnMovieNightSync', triggerSync));
+
             homeSections.insertBefore(section, homeSections.firstChild);
+            updateSyncStatus();
         }
+    }
+
+    function insertInDetailRow(container, btn) {
+        const moreBtn = container.querySelector('.btnMoreCommands');
+        if (moreBtn) container.insertBefore(btn, moreBtn);
+        else container.appendChild(btn);
     }
 
     function getItemIdFromUrl() {
@@ -93,60 +109,106 @@
         return params.get('id') || params.get('itemId');
     }
 
-    async function showRatingDialog(itemId) {
+    function createOverlay() {
         const overlay = document.createElement('div');
         overlay.className = 'dialogBackdrop dialogBackdropOpened';
         overlay.style.zIndex = '99998';
-        overlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
+        overlay.style.backgroundColor = 'rgba(0,0,0,0.6)';
         overlay.style.position = 'fixed';
-        overlay.style.top = '0';
-        overlay.style.left = '0';
-        overlay.style.right = '0';
-        overlay.style.bottom = '0';
+        overlay.style.top = '0'; overlay.style.left = '0'; overlay.style.right = '0'; overlay.style.bottom = '0';
+        overlay.style.backdropFilter = 'blur(4px)';
+        return overlay;
+    }
 
+    function createDialogBase(title) {
         const dialog = document.createElement('div');
         dialog.className = 'dialog';
         dialog.style.position = 'fixed';
-        dialog.style.top = '50%';
-        dialog.style.left = '50%';
+        dialog.style.top = '50%'; dialog.style.left = '50%';
         dialog.style.transform = 'translate(-50%, -50%)';
         dialog.style.zIndex = '99999';
         dialog.style.padding = '2em';
-        dialog.style.minWidth = '250px';
-        dialog.style.backgroundColor = '#222';
-        dialog.style.borderRadius = '1em';
+        dialog.style.minWidth = '320px';
+        dialog.style.backgroundColor = '#1a1a1a';
+        dialog.style.borderRadius = '1.5em';
         dialog.style.color = 'white';
+        dialog.style.boxShadow = '0 10px 25px rgba(0,0,0,0.5)';
+        dialog.style.border = '1px solid #333';
 
         dialog.innerHTML = `
-            <h2 style="margin-top:0; text-align:center;">Rate on MovieNight</h2>
-            <div class="rating-grid" style="display:grid; grid-template-columns:repeat(5, 1fr); gap:0.5em; margin:1.5em 0;"></div>
-            <button is="emby-button" class="emby-button button-flat btnCancel" style="width:100%; color: white;">Cancel</button>
+            <h2 style="margin-top:0; text-align:center; font-weight:400;">${title}</h2>
+            <div class="dialog-content" style="margin:1.5em 0;"></div>
+            <div class="dialog-footer" style="display:flex; gap:1em;">
+                <button is="emby-button" class="emby-button button-flat btnCancel" style="flex:1; color: white;">Cancel</button>
+            </div>
         `;
+        return dialog;
+    }
 
-        const grid = dialog.querySelector('.rating-grid');
+    async function showRatingDialog(itemId) {
+        const overlay = createOverlay();
+        const dialog = createDialogBase('Rate on MovieNight');
+        const content = dialog.querySelector('.dialog-content');
+
+        content.innerHTML = `<div class="rating-grid" style="display:grid; grid-template-columns:repeat(5, 1fr); gap:0.6em;"></div>`;
+        const grid = content.querySelector('.rating-grid');
+
+        const cleanup = () => { if (overlay.parentNode) document.body.removeChild(overlay); };
+
         for (let i = 1; i <= 10; i++) {
             const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.is = 'emby-button';
+            btn.type = 'button'; btn.is = 'emby-button';
             btn.className = 'emby-button raised';
             btn.innerText = i;
-            btn.style.padding = '0.5em';
-            btn.onclick = async () => {
-                cleanup();
-                await submitRating(itemId, i);
-            };
+            btn.style.padding = '0.8em 0';
+            btn.onclick = async () => { cleanup(); await submitRating(itemId, i); };
             grid.appendChild(btn);
         }
 
-        const cleanup = () => {
-            if (overlay.parentNode) document.body.removeChild(overlay);
+        dialog.querySelector('.btnCancel').onclick = cleanup;
+        overlay.onclick = (e) => { if (e.target === overlay) cleanup(); };
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+    }
+
+    async function showAddMovieDialog() {
+        const overlay = createOverlay();
+        const dialog = createDialogBase('Add Movie (STRM)');
+        const content = dialog.querySelector('.dialog-content');
+        const footer = dialog.querySelector('.dialog-footer');
+
+        content.innerHTML = `
+            <div style="margin-bottom:1em;">
+                <label style="display:block; margin-bottom:0.4em; font-size:0.9em; opacity:0.8;">Movie Title</label>
+                <input type="text" class="emby-input txtTitle" style="width:100%; box-sizing:border-box;" placeholder="e.g. Inception">
+            </div>
+            <div>
+                <label style="display:block; margin-bottom:0.4em; font-size:0.9em; opacity:0.8;">Stream URL (Optional)</label>
+                <input type="text" class="emby-input txtUrl" style="width:100%; box-sizing:border-box;" placeholder="http://...">
+            </div>
+        `;
+
+        const btnAdd = document.createElement('button');
+        btnAdd.className = 'emby-button raised button-submit';
+        btnAdd.style.flex = '2';
+        btnAdd.innerHTML = '<span>Add Film</span>';
+        footer.insertBefore(btnAdd, footer.firstChild);
+
+        const cleanup = () => { if (overlay.parentNode) document.body.removeChild(overlay); };
+
+        btnAdd.onclick = async () => {
+            const title = dialog.querySelector('.txtTitle').value;
+            const url = dialog.querySelector('.txtUrl').value;
+            if (!title) return;
+            cleanup();
+            await addMovie(title, url);
         };
 
         dialog.querySelector('.btnCancel').onclick = cleanup;
         overlay.onclick = (e) => { if (e.target === overlay) cleanup(); };
-
         overlay.appendChild(dialog);
         document.body.appendChild(overlay);
+        dialog.querySelector('.txtTitle').focus();
     }
 
     async function showRecommendation() {
@@ -167,26 +229,44 @@
             }
         } catch (err) {
             console.error('Failed to get recommendations', err);
-            showMsg('Failed to get recommendations from MovieNight.');
+            showMsg('Failed to get recommendations. Check your API token and MovieNight status.');
         }
     }
 
-    async function promptAddMovie() {
-        const title = prompt("Enter movie title:");
-        if (!title) return;
-
+    async function addMovie(title, url) {
         try {
             await ApiClient.ajax({
                 type: 'POST',
                 url: ApiClient.getUrl(`MovieNight/Films`),
-                data: JSON.stringify({ title: title }),
+                data: JSON.stringify({ title, url }),
                 contentType: 'application/json'
             });
             showMsg(`STRM file created for "${title}". Refresh your library to see it.`);
         } catch (err) {
             console.error('Failed to create movie', err);
-            showMsg('Failed to create movie. Check plugin configuration and logs.');
+            showMsg('Failed to create movie. Ensure STRM output path is configured.');
         }
+    }
+
+    async function triggerSync() {
+        try {
+            await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl(`MovieNight/Sync`) });
+            showMsg('Library sync triggered!');
+            setTimeout(updateSyncStatus, 2000);
+        } catch (err) {
+            showMsg('Failed to trigger sync.');
+        }
+    }
+
+    async function updateSyncStatus() {
+        const statusEl = document.querySelector('.movieNightSyncStatus');
+        if (!statusEl) return;
+        try {
+            const state = await ApiClient.getJSON(ApiClient.getUrl(`MovieNight/SyncState`));
+            if (state && state.lastSyncAt) {
+                statusEl.innerText = `Last sync: ${new Date(state.lastSyncAt).toLocaleString()}`;
+            }
+        } catch (err) { /* ignore */ }
     }
 
     async function submitRating(itemId, score) {
@@ -198,10 +278,24 @@
                 data: JSON.stringify({ score: parseInt(score), note: 'From Jellyfin UI' }),
                 contentType: 'application/json'
             });
-            showMsg('Rating submitted!');
+            showMsg('Rating submitted to MovieNight!');
         } catch (err) {
-            console.error('Failed to submit rating', err);
-            showMsg('Failed to submit rating to MovieNight.');
+            showMsg('Failed to submit rating.');
+        }
+    }
+
+    async function submitViewed(itemId) {
+        const userId = ApiClient.getCurrentUserId();
+        try {
+            await ApiClient.ajax({
+                type: 'POST',
+                url: ApiClient.getUrl(`MovieNight/Users/${userId}/Library/Films/${itemId}/Viewed`),
+                data: JSON.stringify({ watchedAt: new Date().toISOString() }),
+                contentType: 'application/json'
+            });
+            showMsg('Marked as viewed in MovieNight!');
+        } catch (err) {
+            showMsg('Failed to mark as viewed.');
         }
     }
 

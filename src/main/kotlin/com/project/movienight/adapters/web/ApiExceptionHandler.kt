@@ -12,19 +12,20 @@ import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.server.ResponseStatusException
+import org.springframework.web.servlet.resource.NoResourceFoundException
 
 @RestControllerAdvice
 class ApiExceptionHandler {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    @ExceptionHandler(EntityNotFoundException::class)
+    @ExceptionHandler(EntityNotFoundException::class, NoResourceFoundException::class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    fun handleNotFound(exception: EntityNotFoundException): ErrorResponse {
+    fun handleNotFound(exception: Exception): ErrorResponse {
         val traceId = currentTraceId()
-        log.warn("Entity not found: traceId='{}', message='{}'", traceId, exception.message)
+        log.warn("Resource not found: traceId='{}', message='{}'", traceId, exception.message)
 
         return ErrorResponse(
-            message = exception.message ?: "Entity not found",
+            message = exception.message ?: "Resource not found",
             traceId = traceId,
         )
     }

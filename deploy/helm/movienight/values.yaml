@@ -1,0 +1,118 @@
+nameOverride: ""
+fullnameOverride: ""
+
+global:
+  imagePullSecrets: []
+  labels: {}
+  annotations: {}
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+postgres:
+  # Set url/username/password for a fixed database, or use existingSecret.
+  url: ""
+  username: ""
+  password: ""
+  existingSecret:
+    name: ""
+    urlKey: url
+    usernameKey: username
+    passwordKey: password
+  cluster:
+    enabled: false
+    name: ""
+    instances: 1
+    database: postgres
+    owner: postgres
+    # Secret containing CNPG initdb owner credentials (username/password).
+    bootstrapSecretName: ""
+    host: ""
+    port: 5432
+    storage:
+      size: 10Gi
+      storageClass: ""
+    labels: {}
+    annotations: {}
+    extraSpec: {}
+
+backend:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: ghcr.io/devitq/movienight-backend
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8080
+  env:
+    - name: SERVER_PORT
+      value: "8080"
+    - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+      value: org.postgresql.Driver
+    - name: SPRING_FLYWAY_ENABLED
+      value: "true"
+    - name: SPRING_FLYWAY_LOCATIONS
+      value: classpath:db/migration
+    - name: SPRING_FLYWAY_BASELINE_ON_MIGRATE
+      value: "true"
+    - name: SPRING_H2_CONSOLE_ENABLED
+      value: "false"
+  envFrom: []
+  podAnnotations: {}
+  podLabels: {}
+  resources: {}
+  securityContext: {}
+  podSecurityContext: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  livenessProbe:
+    httpGet:
+      path: /actuator/health/liveness
+      port: http
+    initialDelaySeconds: 20
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 5
+  readinessProbe:
+    httpGet:
+      path: /actuator/health/readiness
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 5
+  startupProbe:
+    httpGet:
+      path: /actuator/health
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 5
+    failureThreshold: 24
+
+gateway:
+  enabled: false
+  name: ""
+  className: ""
+  labels: {}
+  annotations: {}
+  listenerHostname: ""
+  hostnames: []
+  http:
+    enabled: true
+    port: 80
+  https:
+    enabled: false
+    port: 443
+    secretName: ""
+
+routes:
+  enabled: true
+  backend:
+    enabled: true
+    pathPrefix: /

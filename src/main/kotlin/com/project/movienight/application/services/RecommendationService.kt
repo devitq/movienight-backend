@@ -354,17 +354,21 @@ class RecommendationService(
         val contextScore = contextScore(film, query, preferences, userProfile, preferenceScore)
         val noveltyScore = if (inLibrary) LIBRARY_NOVELTY_SCORE else CATALOG_NOVELTY_SCORE
         val diversityScore = diversityScore(film, preferences)
-        val score =
+        val rawScore =
             weights.relevanceWeight * preferenceScore +
                 weights.qualityWeight * qualityScore +
                 weights.contextWeight * contextScore +
                 weights.noveltyWeight * noveltyScore +
                 weights.diversityWeight * diversityScore
+        val score = rawScore - explicitChoiceMisfitPenalty(userProfile, relevanceBreakdown)
 
         if (relevanceBreakdown.positiveSimilarity > EXPLICIT_CHOICE_REASON_THRESHOLD) {
             reasons += "Similar to films you rated highly"
         } else if (preferenceScore > STRONG_REASON_THRESHOLD) {
             reasons += "Similar to user preferences and rating history"
+        }
+        matchingPositiveTasteTags(film, userProfile).take(MAX_REASON_ITEMS).forEach { tag ->
+            reasons += "Shares taste signal: ${tag.toReasonLabel()}"
         }
         matchingGenres(film, preferences).take(MAX_REASON_ITEMS).forEach { genre ->
             reasons += "Matches preferred genre: $genre"
@@ -409,11 +413,13 @@ class RecommendationService(
         val normalizedGenres = film.genres.map(::normalize).filter { it.isNotBlank() }
         val plotTokens = tokenize("${film.title} ${film.description}")
         val moods = inferredMoods(film)
+        val semanticTags = semanticTags(film)
         val people = (film.directors + film.cast).map(::normalize).filter { it.isNotBlank() }
 
         vector.add(feature("type", film.contentType.name), weights.contentTypeVectorWeight)
         distribute(vector, "genre", normalizedGenres, weights.genreVectorWeight)
         distribute(vector, "plot", plotTokens, weights.plotVectorWeight)
+        distribute(vector, "tag", semanticTags, weights.plotVectorWeight * SEMANTIC_TAG_VECTOR_WEIGHT_MULTIPLIER)
         distribute(vector, "mood", moods, weights.moodVectorWeight)
         film.releaseYear?.let { vector.add(feature("era", decadeOf(it)), weights.eraVectorWeight) }
         distribute(vector, "person", people, weights.peopleVectorWeight)
@@ -467,6 +473,23 @@ class RecommendationService(
         )
     }
 
+    private fun explicitChoiceMisfitPenalty(
+        userProfile: UserTasteProfile,
+        relevanceBreakdown: RelevanceBreakdown,
+    ): Double {
+        if (!userProfile.hasPositiveChoices) {
+            return 0.0
+        }
+        val fit = relevanceBreakdown.positiveSimilarity
+        if (fit >= POSITIVE_CHOICE_SOFT_FIT_THRESHOLD) {
+            return 0.0
+        }
+        val missingFitRatio =
+            ((POSITIVE_CHOICE_SOFT_FIT_THRESHOLD - fit) / POSITIVE_CHOICE_SOFT_FIT_THRESHOLD)
+                .coerceIn(0.0, 1.0)
+        return EXPLICIT_CHOICE_MISFIT_MAX_PENALTY * missingFitRatio
+    }
+
     private fun contextScore(
         film: Film,
         query: RecommendationQuery,
@@ -516,7 +539,7 @@ class RecommendationService(
                 film.imdbRating?.let { normalizeRating(it) },
                 film.platformRating?.let { normalizeRating(it) },
             )
-        return normalizedRatings.averageOrNull() ?: BASE_QUALITY_SCORE
+        return normalizedRatings.averageOrNull() ?: UNKNOWN_QUALITY_SCORE
     }
 
     private fun diversityScore(
@@ -544,6 +567,25 @@ class RecommendationService(
         return moodLexicon
             .filterValues { keywords -> keywords.any { keyword -> text.contains(keyword) } }
             .keys
+    }
+
+    private fun semanticTags(film: Film): Set<String> {
+        val text = normalize("${film.title} ${film.description} ${film.genres.joinToString(" ")}")
+        return semanticTagLexicon
+            .filterValues { keywords -> keywords.any { keyword -> text.contains(keyword) } }
+            .keys
+    }
+
+    private fun matchingPositiveTasteTags(
+        film: Film,
+        userProfile: UserTasteProfile,
+    ): List<String> {
+        if (!userProfile.hasPositiveChoices) {
+            return emptyList()
+        }
+        return semanticTags(film)
+            .filter { tag -> userProfile.positiveChoices.values.containsKey(feature("tag", tag)) }
+            .sorted()
     }
 
     private fun matchingGenres(
@@ -621,6 +663,10 @@ class RecommendationService(
         value
             .trim()
             .lowercase(Locale.getDefault())
+
+    private fun String.toReasonLabel(): String =
+        split("-")
+            .joinToString(" ") { token -> token.replaceFirstChar { char -> char.titlecase(Locale.getDefault()) } }
 
     private fun cosineSimilarity(
         left: SparseVector,
@@ -736,13 +782,14 @@ class RecommendationService(
         private const val PREFERENCE_CONTENT_TYPE_WEIGHT = 0.5
         private const val LIBRARY_SIGNAL_WEIGHT = 0.25
         private const val EXPLICIT_CHOICE_PROFILE_WEIGHT = 1.8
+        private const val SEMANTIC_TAG_VECTOR_WEIGHT_MULTIPLIER = 0.9
 
         private const val LEARNING_RATE = 0.03
 
         private const val LIBRARY_NOVELTY_SCORE = 0.85
         private const val CATALOG_NOVELTY_SCORE = 0.65
         private const val BASE_CONTEXT_SCORE = 0.5
-        private const val BASE_QUALITY_SCORE = 0.5
+        private const val UNKNOWN_QUALITY_SCORE = 0.42
         private const val BASE_DIVERSITY_SCORE = 0.5
         private const val HIGH_DIVERSITY_SCORE = 0.75
         private const val MEDIUM_DIVERSITY_SCORE = 0.45
@@ -761,6 +808,8 @@ class RecommendationService(
         private const val MAX_RELEVANCE_SCORE = 1.0
         private const val MIN_CONTEXT_RELEVANCE_GATE = 0.35
         private const val MAX_CONTEXT_RELEVANCE_GATE = 1.0
+        private const val POSITIVE_CHOICE_SOFT_FIT_THRESHOLD = 0.10
+        private const val EXPLICIT_CHOICE_MISFIT_MAX_PENALTY = 0.12
 
         private val tokenSeparatorRegex = Regex("[^\\p{L}0-9]+")
         private val stopWords =
@@ -781,6 +830,33 @@ class RecommendationService(
                 "dark" to listOf("dark", "noir", "horror", "murder", "crime"),
                 "romantic" to listOf("romance", "love", "relationship"),
                 "focused" to listOf("science", "mission", "detective", "investigation", "sci-fi"),
+            )
+        private val semanticTagLexicon =
+            mapOf(
+                "magic-fantasy" to
+                    listOf(
+                        "magic",
+                        "magical",
+                        "wizard",
+                        "witch",
+                        "spell",
+                        "sorcer",
+                        "fantasy",
+                        "enchanted",
+                        "dragon",
+                    ),
+                "wizard-school" to listOf("wizard school", "magic school", "academy", "school of magic"),
+                "young-adult" to listOf("young", "teen", "teenage", "teenager", "student", "coming of age"),
+                "family-adventure" to listOf("family", "friendship", "friends", "adventure", "quest"),
+                "quest-adventure" to listOf("quest", "journey", "treasure", "relic", "map", "kingdom"),
+                "heist-crime" to listOf("heist", "thief", "robbery", "criminal", "crime", "gang"),
+                "space-opera" to listOf("space", "spaceship", "galaxy", "planet", "alien", "starship"),
+                "superhero" to listOf("superhero", "hero", "masked", "powers", "mutant"),
+                "martial-arts" to listOf("martial", "kung fu", "samurai", "ninja", "warrior", "sword"),
+                "war-epic" to listOf("war", "battle", "army", "soldier", "general", "rebel"),
+                "mystery-investigation" to listOf("mystery", "detective", "investigation", "secret", "clue"),
+                "dark-fantasy" to listOf("dark force", "curse", "underworld", "demon", "monster"),
+                "animated-anime" to listOf("animation", "animated", "anime"),
             )
     }
 }

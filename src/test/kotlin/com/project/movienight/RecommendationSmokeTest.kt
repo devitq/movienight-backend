@@ -372,8 +372,8 @@ class RecommendationSmokeTest {
             )
         val magicCandidateId =
             createFilm(
-                title = "Academy of Spells",
-                description = "A group of friends learns spells at a magic academy while facing a dark wizard.",
+                title = "Sorcerer Academy",
+                description = "A teenage student joins an academy with friends and faces an enchanted threat.",
                 releaseYear = 2005,
                 genres = listOf("Fantasy", "Adventure", "Family"),
                 imdbRating = 7.0,
@@ -425,6 +425,7 @@ class RecommendationSmokeTest {
                 status { isOk() }
                 jsonPath("$[0].filmId") { value(magicCandidateId.toString()) }
                 jsonPath("$[0].reasons[0]") { value("Similar to films you rated highly") }
+                jsonPath("$[0].reasons[1]") { value("Shares taste signal: Family Adventure") }
             }
     }
 

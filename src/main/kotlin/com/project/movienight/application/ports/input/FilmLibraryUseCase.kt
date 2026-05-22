@@ -1,6 +1,7 @@
 package com.project.movienight.application.ports.input
 
 import com.project.movienight.domain.model.FilmLibrary
+import java.time.LocalDateTime
 import java.util.UUID
 
 interface CreateFilmLibraryUseCase {
@@ -21,6 +22,16 @@ data class AddFilmToLibraryCommand(
     val filmId: UUID,
 )
 
+interface MarkFilmViewedUseCase {
+    fun markViewed(command: MarkFilmViewedCommand): FilmLibrary
+}
+
+data class MarkFilmViewedCommand(
+    val userId: UUID,
+    val filmId: UUID,
+    val watchedAt: LocalDateTime? = null,
+)
+
 interface RemoveFilmFromLibraryUseCase {
     fun removeFilm(command: RemoveFilmFromLibraryCommand): FilmLibrary
 }
@@ -38,3 +49,7 @@ interface GetFilmLibraryUseCase {
 data class GetFilmLibraryQuery(
     val userId: UUID,
 )
+
+interface ListFilmLibraryEntriesUseCase {
+    fun list(userId: UUID): List<FilmLibrary>
+}

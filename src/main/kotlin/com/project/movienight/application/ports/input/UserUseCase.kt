@@ -21,8 +21,17 @@ interface EditUserUseCase {
 
 data class EditUserCommand(
     val name: String,
+    val jellyfinUserId: String? = null,
 )
 
 interface DeleteUserUseCase {
     fun delete(id: UUID)
+}
+
+interface GetUserByIdUseCase {
+    fun getById(id: UUID): User
+}
+
+interface GetAllUsersUseCase {
+    fun getAll(): List<User>
 }

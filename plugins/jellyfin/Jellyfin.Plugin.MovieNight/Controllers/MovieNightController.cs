@@ -138,6 +138,32 @@ public class MovieNightController : ControllerBase
     }
 
     /// <summary>
+    /// Gets user preferences.
+    /// </summary>
+    [HttpGet("Users/{userId}/Preferences")]
+    [Authorize]
+    public async Task<ActionResult<string?>> GetPreferences(
+        [FromRoute] string userId,
+        CancellationToken cancellationToken)
+    {
+        return await _backendClient.GetPreferencesAsync(userId, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Completes onboarding for a user.
+    /// </summary>
+    [HttpPost("Users/{userId}/Onboarding")]
+    [Authorize]
+    public async Task<ActionResult> CompleteOnboarding(
+        [FromRoute] string userId,
+        [FromBody] object payload,
+        CancellationToken cancellationToken)
+    {
+        await _backendClient.CompleteOnboardingAsync(userId, payload, cancellationToken).ConfigureAwait(false);
+        return Ok();
+    }
+
+    /// <summary>
     /// Creates a new film by generating a .strm file in a folder-per-movie structure.
     /// Structure: Movie Name (Year) [imdbid-ttXXXXXXX]/Movie Name (Year) [imdbid-ttXXXXXXX].strm
     /// </summary>

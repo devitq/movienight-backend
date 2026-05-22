@@ -8,8 +8,11 @@ import com.project.movienight.application.ports.input.CreateUserUseCase
 import com.project.movienight.application.ports.input.DeleteUserUseCase
 import com.project.movienight.application.ports.input.EditUserCommand
 import com.project.movienight.application.ports.input.EditUserUseCase
+import com.project.movienight.application.ports.input.GetAllUsersUseCase
+import com.project.movienight.application.ports.input.GetUserByIdUseCase
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -25,6 +28,8 @@ class UserController(
     private val createUserUseCase: CreateUserUseCase,
     private val editUserUseCase: EditUserUseCase,
     private val deleteUserUseCase: DeleteUserUseCase,
+    private val getUserByIdUseCase: GetUserByIdUseCase,
+    private val getAllUsersUseCase: GetAllUsersUseCase,
 ) {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -40,6 +45,14 @@ class UserController(
             ),
         )
 
+    @GetMapping
+    fun getAll(): List<UserResponse> = getAllUsersUseCase.getAll().map { UserResponse.fromDomain(it) }
+
+    @GetMapping("/{id}")
+    fun getById(
+        @PathVariable id: UUID,
+    ): UserResponse = UserResponse.fromDomain(getUserByIdUseCase.getById(id))
+
     @PatchMapping("/{id}")
     fun edit(
         @PathVariable id: UUID,
@@ -51,6 +64,7 @@ class UserController(
                 command =
                     EditUserCommand(
                         name = request.name,
+                        jellyfinUserId = request.jellyfinUserId,
                     ),
             ),
         )

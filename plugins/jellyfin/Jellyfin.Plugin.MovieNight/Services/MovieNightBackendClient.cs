@@ -168,6 +168,34 @@ public class MovieNightBackendClient
     }
 
     /// <summary>
+    /// Gets user preferences.
+    /// </summary>
+    public async Task<string?> GetPreferencesAsync(string userId, CancellationToken cancellationToken)
+    {
+        var request = CreateRequest(HttpMethod.Get, $"/api/users/{userId}/preferences");
+        if (request is null) return null;
+
+        using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound) return null;
+
+        var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        return body;
+    }
+
+    /// <summary>
+    /// Completes onboarding for a user.
+    /// </summary>
+    public async Task CompleteOnboardingAsync(string userId, object payload, CancellationToken cancellationToken)
+    {
+        var request = CreateRequest(HttpMethod.Post, $"/api/users/{userId}/recommendation-onboarding");
+        if (request is null) return;
+
+        request.Content = JsonContent.Create(payload, options: JsonOptions);
+        using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+    }
+
+    /// <summary>
     /// Pushes an event payload to the backend event endpoint.
     /// </summary>
     /// <param name="payload">Event payload.</param>

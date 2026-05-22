@@ -2,16 +2,6 @@
 
 Thin Jellyfin server plugin for bridging Jellyfin playback/sync signals to the MovieNight backend.
 
-## Instructions
-
-Brief instructions on how to integrate this plugin to Jellyfin.
-
-1. Install this plugin
-2. Setup plugin in plugin settings
-2. Install [JavaScript Inejector plugin](https://github.com/n00bcodr/Jellyfin-JavaScript-Injector)
-3. Add [ui.js](./Jellyfin.Plugin.MovieNight/Configuration/ui.js) file to JavaScript Injector
-5. You're all set! (i hope)
-
 ## Build
 
 ```bash

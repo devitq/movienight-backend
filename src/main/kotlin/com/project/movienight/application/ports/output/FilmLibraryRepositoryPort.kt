@@ -8,6 +8,11 @@ interface FilmLibraryRepositoryPort {
 
     fun findById(id: UUID): FilmLibrary?
 
+    fun findByUserIdAndFilmId(
+        userId: UUID,
+        filmId: UUID,
+    ): FilmLibrary?
+
     fun findAll(): List<FilmLibrary>
 
     fun deleteById(id: UUID)

@@ -40,7 +40,10 @@
         return btn;
     }
 
-    function injectUI() {
+    async function injectUI() {
+        // Check for onboarding
+        await checkOnboarding();
+
         // 1. Item Detail Page
         const detailButtons = document.querySelector('.mainDetailButtons');
         if (detailButtons) {
@@ -229,6 +232,114 @@
         overlay.appendChild(dialog);
         document.body.appendChild(overlay);
         dialog.querySelector('.txtTitle').focus();
+    }
+
+    async function showOnboardingDialog() {
+        const overlay = createOverlay();
+        const dialog = createDialogBase('Welcome to MovieNight!');
+        dialog.style.minWidth = '450px';
+        const content = dialog.querySelector('.dialog-content');
+        const footer = dialog.querySelector('.dialog-footer');
+
+        content.innerHTML = `
+            <p style="margin-bottom:1.5em; opacity:0.8; text-align:center;">Pick your preferences to get better recommendations.</p>
+            <div style="margin-bottom:1.5em;">
+                <label style="display:block; margin-bottom:0.6em; font-weight:600;">Favorite Genres</label>
+                <div class="genre-chips" style="display:flex; flex-wrap:wrap; gap:0.5em;"></div>
+            </div>
+            <div style="margin-bottom:1.5em;">
+                <label style="display:block; margin-bottom:0.6em; font-weight:600;">Preferred Eras</label>
+                <div class="era-chips" style="display:flex; flex-wrap:wrap; gap:0.5em;"></div>
+            </div>
+            <div>
+                <label style="display:block; margin-bottom:0.6em; font-weight:600;">Content Types</label>
+                <div class="type-chips" style="display:flex; flex-wrap:wrap; gap:0.5em;"></div>
+            </div>
+        `;
+
+        const genres = ["Action", "Comedy", "Drama", "Sci-Fi", "Horror", "Thriller", "Animation", "Documentary"];
+        const eras = ["1980s", "1990s", "2000s", "2010s", "2020s"];
+        const types = ["FILM", "SERIES"];
+
+        const selections = { genres: new Set(), eras: new Set(), types: new Set() };
+
+        const createChip = (text, container, type) => {
+            const chip = document.createElement('div');
+            chip.innerText = text;
+            chip.style.cssText = 'padding:0.4em 1em; border-radius:2em; border:1px solid #444; cursor:pointer; font-size:0.9em; transition:all 0.2s;';
+            chip.onclick = () => {
+                if (selections[type].has(text)) {
+                    selections[type].delete(text);
+                    chip.style.backgroundColor = 'transparent';
+                    chip.style.borderColor = '#444';
+                } else {
+                    selections[type].add(text);
+                    chip.style.backgroundColor = '#0064d2';
+                    chip.style.borderColor = '#0064d2';
+                }
+            };
+            container.appendChild(chip);
+        };
+
+        genres.forEach(g => createChip(g, content.querySelector('.genre-chips'), 'genres'));
+        eras.forEach(e => createChip(e, content.querySelector('.era-chips'), 'eras'));
+        types.forEach(t => createChip(t, content.querySelector('.type-chips'), 'types'));
+
+        const btnSave = document.createElement('button');
+        btnSave.className = 'emby-button raised button-submit';
+        btnSave.style.flex = '2';
+        btnSave.style.backgroundColor = '#0064d2';
+        btnSave.innerHTML = '<span>Save & Start</span>';
+        footer.insertBefore(btnSave, footer.firstChild);
+
+        const cleanup = () => { if (overlay.parentNode) document.body.removeChild(overlay); };
+
+        btnSave.onclick = async () => {
+            const payload = {
+                weightedGenres: Object.fromEntries([...selections.genres].map(g => [g, 5])),
+                eras: [...selections.eras],
+                contentTypes: [...selections.types]
+            };
+            cleanup();
+            await completeOnboarding(payload);
+        };
+
+        dialog.querySelector('.btnCancel').onclick = cleanup;
+        overlay.onclick = (e) => { if (e.target === overlay) cleanup(); };
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+    }
+
+    async function checkOnboarding() {
+        if (window.movieNightOnboardingChecked) return;
+        window.movieNightOnboardingChecked = true;
+
+        const userId = ApiClient.getCurrentUserId();
+        if (!userId) return;
+
+        try {
+            const prefs = await ApiClient.getJSON(ApiClient.getUrl(`MovieNight/Users/${userId}/Preferences`));
+            if (!prefs || (!Object.keys(prefs.weightedGenres || {}).length && !prefs.eras?.length)) {
+                showOnboardingDialog();
+            }
+        } catch (err) {
+            if (err.status === 404) showOnboardingDialog();
+        }
+    }
+
+    async function completeOnboarding(payload) {
+        const userId = ApiClient.getCurrentUserId();
+        try {
+            await ApiClient.ajax({
+                type: 'POST',
+                url: ApiClient.getUrl(`MovieNight/Users/${userId}/Onboarding`),
+                data: JSON.stringify(payload),
+                contentType: 'application/json'
+            });
+            showMsg('Welcome! Your preferences have been saved.');
+        } catch (err) {
+            showMsg('Failed to save onboarding preferences.');
+        }
     }
 
     async function showRecommendation() {

@@ -37,7 +37,7 @@ class UserServiceTest {
     fun `should create user successfully`() {
         val command = CreateUserCommand(name = "John Doe", email = "john@example.com")
         val userId = UUID.randomUUID()
-        val expectedUser = User(id = userId, name = "John Doe", email = "john@example.com", library = null)
+        val expectedUser = User(id = userId, name = "John Doe", email = "john@example.com")
 
         every { userConfig.isBlocked("John Doe") } returns false
         every { idGenerator.generateId() } returns userId
@@ -74,8 +74,8 @@ class UserServiceTest {
     fun `should edit user successfully`() {
         val userId = UUID.randomUUID()
         val command = EditUserCommand(name = "Jane Doe")
-        val existingUser = User(id = userId, name = "John Doe", email = "john@example.com", library = null)
-        val updatedUser = User(id = userId, name = "Jane Doe", email = "john@example.com", library = null)
+        val existingUser = User(id = userId, name = "John Doe", email = "john@example.com")
+        val updatedUser = User(id = userId, name = "Jane Doe", email = "john@example.com")
 
         every { userConfig.isBlocked("Jane Doe") } returns false
         every { userRepository.findById(userId) } returns existingUser
@@ -128,7 +128,7 @@ class UserServiceTest {
     @Test
     fun `should delete user successfully`() {
         val userId = UUID.randomUUID()
-        val existingUser = User(id = userId, name = "John Doe", email = "john@example.com", library = null)
+        val existingUser = User(id = userId, name = "John Doe", email = "john@example.com")
 
         every { userRepository.findById(userId) } returns existingUser
         justRun { userRepository.deleteById(userId) }

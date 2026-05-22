@@ -1,13 +1,13 @@
 package com.project.movienight.application.services
 
-import com.project.movienight.adapters.metrics.BusinessMetricsService
 import com.project.movienight.application.ports.input.AcceptRecommendationCommand
 import com.project.movienight.application.ports.input.AcceptRecommendationUseCase
 import com.project.movienight.application.ports.input.GetRecommendationsUseCase
 import com.project.movienight.application.ports.input.RecommendationQuery
 import com.project.movienight.application.ports.input.RejectRecommendationCommand
 import com.project.movienight.application.ports.input.RejectRecommendationUseCase
-import com.project.movienight.application.ports.output.FilmLibraryRepositoryPort
+import com.project.movienight.application.ports.output.BusinessMetricsPort
+import com.project.movienight.application.ports.output.FilmLibraryEntryRepositoryPort
 import com.project.movienight.application.ports.output.FilmRatingRepositoryPort
 import com.project.movienight.application.ports.output.FilmRepositoryPort
 import com.project.movienight.application.ports.output.IdGenerator
@@ -17,7 +17,7 @@ import com.project.movienight.application.ports.output.UserRecommendationWeights
 import com.project.movienight.application.ports.output.UserRepositoryPort
 import com.project.movienight.domain.exception.EntityNotFoundException
 import com.project.movienight.domain.model.Film
-import com.project.movienight.domain.model.FilmLibrary
+import com.project.movienight.domain.model.FilmLibraryEntry
 import com.project.movienight.domain.model.FilmRating
 import com.project.movienight.domain.model.RecommendationEvent
 import com.project.movienight.domain.model.RecommendationEventType
@@ -34,14 +34,14 @@ import kotlin.math.sqrt
 @Service
 class RecommendationService(
     private val filmRepository: FilmRepositoryPort,
-    private val filmLibraryRepository: FilmLibraryRepositoryPort,
+    private val filmLibraryEntryRepository: FilmLibraryEntryRepositoryPort,
     private val filmRatingRepository: FilmRatingRepositoryPort,
     private val userPreferencesRepository: UserPreferencesRepositoryPort,
     private val userRepository: UserRepositoryPort,
     private val recommendationEventRepository: RecommendationEventRepositoryPort,
     private val userRecommendationWeightsRepository: UserRecommendationWeightsRepositoryPort,
     private val idGenerator: IdGenerator,
-    private val businessMetricsService: BusinessMetricsService,
+    private val businessMetricsService: BusinessMetricsPort,
 ) : GetRecommendationsUseCase,
     AcceptRecommendationUseCase,
     RejectRecommendationUseCase {
@@ -54,7 +54,7 @@ class RecommendationService(
 
         val preferences = userPreferencesRepository.findByUserId(query.userId)
         val ratings = filmRatingRepository.findByUserId(query.userId)
-        val libraryEntries = filmLibraryRepository.findAll().filter { it.userId == query.userId }
+        val libraryEntries = filmLibraryEntryRepository.findByUserId(query.userId)
         val libraryFilmIds = libraryEntries.map { it.filmId }.toSet()
         val watchedFilmIds = libraryEntries.filter { it.isViewed }.map { it.filmId }.toSet()
         val films = filmRepository.findAll()
@@ -278,7 +278,7 @@ class RecommendationService(
     private fun buildUserProfile(
         preferences: UserPreferences?,
         ratings: List<FilmRating>,
-        libraryEntries: List<FilmLibrary>,
+        libraryEntries: List<FilmLibraryEntry>,
         filmsById: Map<UUID, Film>,
         weights: UserRecommendationWeights,
     ): SparseVector {

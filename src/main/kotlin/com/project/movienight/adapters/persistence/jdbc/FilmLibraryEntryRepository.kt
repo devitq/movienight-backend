@@ -1,18 +1,18 @@
 package com.project.movienight.adapters.persistence.jdbc
 
-import com.project.movienight.application.ports.output.FilmLibraryRepositoryPort
-import com.project.movienight.domain.model.FilmLibrary
+import com.project.movienight.application.ports.output.FilmLibraryEntryRepositoryPort
+import com.project.movienight.domain.model.FilmLibraryEntry
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
 import java.sql.ResultSet
 import java.util.UUID
 
 @Repository
-class FilmLibraryRepository(
+class FilmLibraryEntryRepository(
     private val jdbc: JdbcTemplate,
-) : FilmLibraryRepositoryPort {
-    private val filmLibraryRowMapper = { rs: ResultSet, _: Int ->
-        FilmLibrary(
+) : FilmLibraryEntryRepositoryPort {
+    private val rowMapper = { rs: ResultSet, _: Int ->
+        FilmLibraryEntry(
             id = UUID.fromString(rs.getString("id")),
             userId = UUID.fromString(rs.getString("user_id")),
             filmId = UUID.fromString(rs.getString("film_id")),
@@ -22,7 +22,7 @@ class FilmLibraryRepository(
         )
     }
 
-    override fun save(filmLibrary: FilmLibrary): FilmLibrary {
+    override fun save(entry: FilmLibraryEntry): FilmLibraryEntry {
         val updatedRows =
             jdbc.update(
                 """
@@ -30,12 +30,12 @@ class FilmLibraryRepository(
                 SET user_id = ?, film_id = ?, comment = ?, is_viewed = ?, watched_at = ?
                 WHERE id = ?
                 """.trimIndent(),
-                filmLibrary.userId,
-                filmLibrary.filmId,
-                filmLibrary.comment,
-                filmLibrary.isViewed,
-                filmLibrary.watchedAt,
-                filmLibrary.id,
+                entry.userId,
+                entry.filmId,
+                entry.comment,
+                entry.isViewed,
+                entry.watchedAt,
+                entry.id,
             )
         if (updatedRows == 0) {
             jdbc.update(
@@ -43,48 +43,51 @@ class FilmLibraryRepository(
                 INSERT INTO favorites (id, user_id, film_id, comment, is_viewed, watched_at)
                 VALUES (?, ?, ?, ?, ?, ?)
                 """.trimIndent(),
-                filmLibrary.id,
-                filmLibrary.userId,
-                filmLibrary.filmId,
-                filmLibrary.comment,
-                filmLibrary.isViewed,
-                filmLibrary.watchedAt,
+                entry.id,
+                entry.userId,
+                entry.filmId,
+                entry.comment,
+                entry.isViewed,
+                entry.watchedAt,
             )
         }
-        return filmLibrary
+        return entry
     }
 
-    override fun findById(id: UUID): FilmLibrary? {
-        val entries =
-            jdbc.query(
+    override fun findById(id: UUID): FilmLibraryEntry? =
+        jdbc
+            .query(
                 "SELECT id, user_id, film_id, comment, is_viewed, watched_at FROM favorites WHERE id = ?",
-                filmLibraryRowMapper,
+                rowMapper,
                 id,
-            )
-        return entries.firstOrNull()
-    }
+            ).firstOrNull()
+
+    override fun findByUserId(userId: UUID): List<FilmLibraryEntry> =
+        jdbc.query(
+            "SELECT id, user_id, film_id, comment, is_viewed, watched_at FROM favorites WHERE user_id = ?",
+            rowMapper,
+            userId,
+        )
 
     override fun findByUserIdAndFilmId(
         userId: UUID,
         filmId: UUID,
-    ): FilmLibrary? {
-        val entries =
-            jdbc.query(
+    ): FilmLibraryEntry? =
+        jdbc
+            .query(
                 """
                 SELECT id, user_id, film_id, comment, is_viewed, watched_at
                 FROM favorites WHERE user_id = ? AND film_id = ?
                 """.trimIndent(),
-                filmLibraryRowMapper,
+                rowMapper,
                 userId,
                 filmId,
-            )
-        return entries.firstOrNull()
-    }
+            ).firstOrNull()
 
-    override fun findAll(): List<FilmLibrary> =
+    override fun findAll(): List<FilmLibraryEntry> =
         jdbc.query(
             "SELECT id, user_id, film_id, comment, is_viewed, watched_at FROM favorites",
-            filmLibraryRowMapper,
+            rowMapper,
         )
 
     override fun deleteById(id: UUID) {

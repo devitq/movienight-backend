@@ -159,32 +159,6 @@ class FilmRepository(
         return films.firstOrNull()
     }
 
-    override fun findByJellyfinLibraryId(jellyfinLibraryId: String): Film? {
-        val films =
-            jdbc.query(
-                """
-                SELECT id,
-                       title,
-                       description,
-                       content_type,
-                       release_year,
-                       genres,
-                       cast_members,
-                       directors,
-                       imdb_rating,
-                       platform_rating,
-                       external_url,
-                       jellyfin_item_id,
-                       jellyfin_library_id
-                FROM films
-                WHERE jellyfin_library_id = ?
-                """.trimIndent(),
-                filmRowMapper,
-                jellyfinLibraryId,
-            )
-        return films.firstOrNull()
-    }
-
     override fun findAll(): List<Film> =
         jdbc.query(
             """

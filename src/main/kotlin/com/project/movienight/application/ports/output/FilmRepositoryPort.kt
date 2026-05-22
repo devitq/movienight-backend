@@ -10,8 +10,6 @@ interface FilmRepositoryPort {
 
     fun findByJellyfinItemId(jellyfinItemId: String): Film?
 
-    fun findByJellyfinLibraryId(jellyfinLibraryId: String): Film?
-
     fun findAll(): List<Film>
 
     fun findByTitle(title: String): Film?

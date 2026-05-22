@@ -1,15 +1,15 @@
 package com.project.movienight.application.services
 
-import com.project.movienight.adapters.metrics.BusinessMetricsService
 import com.project.movienight.application.ports.input.AddFilmToLibraryCommand
-import com.project.movienight.application.ports.input.CreateFilmLibraryCommand
-import com.project.movienight.application.ports.input.GetFilmLibraryQuery
 import com.project.movienight.application.ports.input.RemoveFilmFromLibraryCommand
-import com.project.movienight.application.ports.output.FilmLibraryRepositoryPort
+import com.project.movienight.application.ports.output.BusinessMetricsPort
+import com.project.movienight.application.ports.output.FilmLibraryEntryRepositoryPort
+import com.project.movienight.application.ports.output.FilmRepositoryPort
 import com.project.movienight.application.ports.output.IdGenerator
 import com.project.movienight.domain.exception.DomainException
 import com.project.movienight.domain.exception.EntityNotFoundException
-import com.project.movienight.domain.model.FilmLibrary
+import com.project.movienight.domain.model.Film
+import com.project.movienight.domain.model.FilmLibraryEntry
 import io.mockk.every
 import io.mockk.justRun
 import io.mockk.mockk
@@ -22,83 +22,52 @@ import org.junit.jupiter.api.assertThrows
 import java.util.UUID
 
 class FilmLibraryServiceTest {
-    private lateinit var filmLibraryRepository: FilmLibraryRepositoryPort
+    private lateinit var filmLibraryEntryRepository: FilmLibraryEntryRepositoryPort
+    private lateinit var filmRepository: FilmRepositoryPort
     private lateinit var idGenerator: IdGenerator
-    private lateinit var businessMetricsService: BusinessMetricsService
+    private lateinit var businessMetricsService: BusinessMetricsPort
     private lateinit var filmLibraryService: FilmLibraryService
 
     @BeforeEach
     fun setup() {
-        filmLibraryRepository = mockk()
+        filmLibraryEntryRepository = mockk()
+        filmRepository = mockk()
         idGenerator = mockk()
         businessMetricsService = mockk(relaxed = true)
-        filmLibraryService = FilmLibraryService(filmLibraryRepository, idGenerator, businessMetricsService)
-    }
-
-    @Test
-    fun `should throw EntityNotFoundException when creating library for user with no entries`() {
-        val userId = UUID.randomUUID()
-        val command = CreateFilmLibraryCommand(userId = userId, name = "My Films")
-
-        every { filmLibraryRepository.findAll() } returns emptyList()
-
-        assertThrows<EntityNotFoundException> {
-            filmLibraryService.create(command)
-        }
-
-        verify(exactly = 1) { filmLibraryRepository.findAll() }
-        verify(exactly = 0) { idGenerator.generateId() }
-        verify(exactly = 0) { filmLibraryRepository.save(any()) }
-    }
-
-    @Test
-    fun `should return existing library when user already has one`() {
-        val userId = UUID.randomUUID()
-        val existingLibrary =
-            FilmLibrary(
-                id = UUID.randomUUID(),
-                userId = userId,
-                filmId = UUID.randomUUID(),
-                comment = "Existing Library",
-                isViewed = false,
+        filmLibraryService =
+            FilmLibraryService(
+                filmLibraryEntryRepository,
+                filmRepository,
+                idGenerator,
+                businessMetricsService,
             )
-        val command = CreateFilmLibraryCommand(userId = userId, name = "New Library")
-
-        every { filmLibraryRepository.findAll() } returns listOf(existingLibrary)
-
-        val result = filmLibraryService.create(command)
-
-        assertEquals(existingLibrary, result)
-
-        verify(exactly = 1) { filmLibraryRepository.findAll() }
-        verify(exactly = 0) { idGenerator.generateId() }
-        verify(exactly = 0) { filmLibraryRepository.save(any()) }
     }
 
     @Test
-    fun `should add film to new library when user has no library`() {
+    fun `should add film as new library entry`() {
         val userId = UUID.randomUUID()
         val filmId = UUID.randomUUID()
-        val libraryId = UUID.randomUUID()
+        val entryId = UUID.randomUUID()
         val command = AddFilmToLibraryCommand(userId = userId, filmId = filmId)
-        val expectedLibrary =
-            FilmLibrary(
-                id = libraryId,
+        val expectedEntry =
+            FilmLibraryEntry(
+                id = entryId,
                 userId = userId,
                 filmId = filmId,
                 comment = null,
                 isViewed = false,
             )
 
-        every { filmLibraryRepository.findAll() } returns emptyList()
-        every { idGenerator.generateId() } returns libraryId
+        every { filmRepository.findById(filmId) } returns Film(filmId, "Film", "Description")
+        every { filmLibraryEntryRepository.findByUserIdAndFilmId(userId, filmId) } returns null
+        every { idGenerator.generateId() } returns entryId
         every {
-            filmLibraryRepository.save(
+            filmLibraryEntryRepository.save(
                 match {
                     it.userId == userId && it.filmId == filmId && it.comment == null && it.isViewed == false
                 },
             )
-        } returns expectedLibrary
+        } returns expectedEntry
 
         val result = filmLibraryService.addFilm(command)
 
@@ -106,62 +75,46 @@ class FilmLibraryServiceTest {
         assertEquals(filmId, result.filmId)
         assertEquals(userId, result.userId)
 
-        verify(exactly = 1) { filmLibraryRepository.findAll() }
+        verify(exactly = 1) { filmLibraryEntryRepository.findByUserIdAndFilmId(userId, filmId) }
         verify(exactly = 1) { idGenerator.generateId() }
-        verify(exactly = 1) { filmLibraryRepository.save(any()) }
+        verify(exactly = 1) { filmLibraryEntryRepository.save(any()) }
     }
 
     @Test
-    fun `should add film as a new library entry when another film already exists`() {
+    fun `should reset viewed state when adding existing entry`() {
         val userId = UUID.randomUUID()
-        val oldFilmId = UUID.randomUUID()
-        val newFilmId = UUID.randomUUID()
-        val existingLibrary =
-            FilmLibrary(
+        val filmId = UUID.randomUUID()
+        val existingEntry =
+            FilmLibraryEntry(
                 id = UUID.randomUUID(),
                 userId = userId,
-                filmId = oldFilmId,
+                filmId = filmId,
                 comment = "My Library",
                 isViewed = true,
             )
-        val command = AddFilmToLibraryCommand(userId = userId, filmId = newFilmId)
-        val createdLibrary =
-            FilmLibrary(
-                id = UUID.randomUUID(),
-                userId = userId,
-                filmId = newFilmId,
-                comment = null,
-                isViewed = false,
-            )
+        val updatedEntry = existingEntry.copy(isViewed = false, watchedAt = null)
 
-        every { filmLibraryRepository.findAll() } returns listOf(existingLibrary)
-        every { idGenerator.generateId() } returns createdLibrary.id
-        every {
-            filmLibraryRepository.save(
-                match {
-                    it.id == createdLibrary.id && it.userId == userId && it.filmId == newFilmId && it.isViewed == false
-                },
-            )
-        } returns createdLibrary
+        every { filmLibraryEntryRepository.findByUserIdAndFilmId(userId, filmId) } returns existingEntry
+        every { filmRepository.findById(filmId) } returns Film(filmId, "Film", "Description")
+        every { filmLibraryEntryRepository.save(updatedEntry) } returns updatedEntry
 
-        val result = filmLibraryService.addFilm(command)
+        val result = filmLibraryService.addFilm(AddFilmToLibraryCommand(userId = userId, filmId = filmId))
 
-        assertEquals(newFilmId, result.filmId)
-        assertEquals(false, result.isViewed)
+        assertEquals(updatedEntry, result)
 
-        verify(exactly = 1) { filmLibraryRepository.findAll() }
-        verify(exactly = 1) { idGenerator.generateId() }
-        verify(exactly = 1) { filmLibraryRepository.save(any()) }
+        verify(exactly = 1) { filmLibraryEntryRepository.findByUserIdAndFilmId(userId, filmId) }
+        verify(exactly = 0) { idGenerator.generateId() }
+        verify(exactly = 1) { filmLibraryEntryRepository.save(updatedEntry) }
     }
 
     @Test
     fun `should remove film from library successfully`() {
         val userId = UUID.randomUUID()
         val filmId = UUID.randomUUID()
-        val libraryId = UUID.randomUUID()
-        val existingLibrary =
-            FilmLibrary(
-                id = libraryId,
+        val entryId = UUID.randomUUID()
+        val existingEntry =
+            FilmLibraryEntry(
+                id = entryId,
                 userId = userId,
                 filmId = filmId,
                 comment = "My Library",
@@ -169,122 +122,70 @@ class FilmLibraryServiceTest {
             )
         val command = RemoveFilmFromLibraryCommand(userId = userId, filmId = filmId)
 
-        every { filmLibraryRepository.findAll() } returns listOf(existingLibrary)
-        justRun { filmLibraryRepository.deleteById(libraryId) }
+        every { filmLibraryEntryRepository.findByUserIdAndFilmId(userId, filmId) } returns existingEntry
+        justRun { filmLibraryEntryRepository.deleteById(entryId) }
 
         val result = filmLibraryService.removeFilm(command)
 
-        assertEquals(existingLibrary, result)
+        assertEquals(existingEntry, result)
 
-        verify(exactly = 1) { filmLibraryRepository.findAll() }
-        verify(exactly = 1) { filmLibraryRepository.deleteById(libraryId) }
+        verify(exactly = 1) { filmLibraryEntryRepository.findByUserIdAndFilmId(userId, filmId) }
+        verify(exactly = 1) { filmLibraryEntryRepository.deleteById(entryId) }
     }
 
     @Test
-    fun `should throw EntityNotFoundException when removing film from non-existent library`() {
+    fun `should throw EntityNotFoundException when removing non-existent entry`() {
         val userId = UUID.randomUUID()
         val filmId = UUID.randomUUID()
         val command = RemoveFilmFromLibraryCommand(userId = userId, filmId = filmId)
 
-        every { filmLibraryRepository.findAll() } returns emptyList()
+        every { filmLibraryEntryRepository.findByUserIdAndFilmId(userId, filmId) } returns null
 
         assertThrows<EntityNotFoundException> {
             filmLibraryService.removeFilm(command)
         }
 
-        verify(exactly = 1) { filmLibraryRepository.findAll() }
-        verify(exactly = 0) { filmLibraryRepository.deleteById(any()) }
+        verify(exactly = 1) { filmLibraryEntryRepository.findByUserIdAndFilmId(userId, filmId) }
+        verify(exactly = 0) { filmLibraryEntryRepository.deleteById(any()) }
     }
 
     @Test
-    fun `should throw DomainException when removing film that is not in library`() {
-        val userId = UUID.randomUUID()
-        val libraryFilmId = UUID.randomUUID()
-        val differentFilmId = UUID.randomUUID()
-        val existingLibrary =
-            FilmLibrary(
-                id = UUID.randomUUID(),
-                userId = userId,
-                filmId = libraryFilmId,
-                comment = "My Library",
-                isViewed = false,
-            )
-        val command = RemoveFilmFromLibraryCommand(userId = userId, filmId = differentFilmId)
-
-        every { filmLibraryRepository.findAll() } returns listOf(existingLibrary)
-
-        assertThrows<DomainException> {
-            filmLibraryService.removeFilm(command)
-        }
-
-        verify(exactly = 1) { filmLibraryRepository.findAll() }
-        verify(exactly = 0) { filmLibraryRepository.deleteById(any()) }
-    }
-
-    @Test
-    fun `should throw EntityNotFoundException when libraryId does not match`() {
+    fun `should throw DomainException when entry id belongs to another film`() {
         val userId = UUID.randomUUID()
         val filmId = UUID.randomUUID()
-        val actualLibraryId = UUID.randomUUID()
-        val wrongLibraryId = UUID.randomUUID()
-        val existingLibrary =
-            FilmLibrary(
-                id = actualLibraryId,
-                userId = userId,
-                filmId = filmId,
-                comment = "My Library",
-                isViewed = false,
-            )
-        val command =
-            RemoveFilmFromLibraryCommand(
-                userId = userId,
-                filmId = filmId,
-                libraryId = wrongLibraryId,
-            )
-
-        every { filmLibraryRepository.findById(wrongLibraryId) } returns null
-
-        assertThrows<EntityNotFoundException> {
-            filmLibraryService.removeFilm(command)
-        }
-
-        verify(exactly = 1) { filmLibraryRepository.findById(wrongLibraryId) }
-        verify(exactly = 0) { filmLibraryRepository.deleteById(any()) }
-    }
-
-    @Test
-    fun `should get library successfully`() {
-        val userId = UUID.randomUUID()
-        val existingLibrary =
-            FilmLibrary(
-                id = UUID.randomUUID(),
+        val entryId = UUID.randomUUID()
+        val existingEntry =
+            FilmLibraryEntry(
+                id = entryId,
                 userId = userId,
                 filmId = UUID.randomUUID(),
                 comment = "My Library",
                 isViewed = false,
             )
-        val query = GetFilmLibraryQuery(userId = userId)
+        val command = RemoveFilmFromLibraryCommand(userId = userId, filmId = filmId, entryId = entryId)
 
-        every { filmLibraryRepository.findAll() } returns listOf(existingLibrary)
+        every { filmLibraryEntryRepository.findById(entryId) } returns existingEntry
 
-        val result = filmLibraryService.getLibrary(query)
+        assertThrows<DomainException> {
+            filmLibraryService.removeFilm(command)
+        }
 
-        assertEquals(existingLibrary, result)
-
-        verify(exactly = 1) { filmLibraryRepository.findAll() }
+        verify(exactly = 1) { filmLibraryEntryRepository.findById(entryId) }
+        verify(exactly = 0) { filmLibraryEntryRepository.deleteById(any()) }
     }
 
     @Test
-    fun `should throw EntityNotFoundException when getting non-existent library`() {
+    fun `should list entries by user`() {
         val userId = UUID.randomUUID()
-        val query = GetFilmLibraryQuery(userId = userId)
+        val entries =
+            listOf(
+                FilmLibraryEntry(UUID.randomUUID(), userId, UUID.randomUUID(), null, false),
+            )
 
-        every { filmLibraryRepository.findAll() } returns emptyList()
+        every { filmLibraryEntryRepository.findByUserId(userId) } returns entries
 
-        assertThrows<EntityNotFoundException> {
-            filmLibraryService.getLibrary(query)
-        }
+        assertEquals(entries, filmLibraryService.list(userId))
 
-        verify(exactly = 1) { filmLibraryRepository.findAll() }
+        verify(exactly = 1) { filmLibraryEntryRepository.findByUserId(userId) }
     }
 }

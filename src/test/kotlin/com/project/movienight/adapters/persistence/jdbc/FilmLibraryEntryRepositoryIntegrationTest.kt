@@ -1,7 +1,7 @@
 package com.project.movienight.adapters.persistence.jdbc
 
 import com.project.movienight.domain.model.Film
-import com.project.movienight.domain.model.FilmLibrary
+import com.project.movienight.domain.model.FilmLibraryEntry
 import com.project.movienight.domain.model.User
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -19,9 +19,9 @@ import java.util.UUID
 
 @SpringBootTest
 @ActiveProfiles("test")
-class FilmLibraryRepositoryIntegrationTest {
+class FilmLibraryEntryRepositoryIntegrationTest {
     @Autowired
-    private lateinit var filmLibraryRepository: FilmLibraryRepository
+    private lateinit var filmLibraryEntryRepository: FilmLibraryEntryRepository
 
     @Autowired
     private lateinit var userRepository: UserRepository
@@ -62,7 +62,7 @@ class FilmLibraryRepositoryIntegrationTest {
     @Test
     fun `should save new film library entry and return saved entry`() {
         val entry =
-            FilmLibrary(
+            FilmLibraryEntry(
                 id = UUID.randomUUID(),
                 userId = testUser.id,
                 filmId = testFilm.id,
@@ -70,7 +70,7 @@ class FilmLibraryRepositoryIntegrationTest {
                 isViewed = false,
             )
 
-        val savedEntry = filmLibraryRepository.save(entry)
+        val savedEntry = filmLibraryEntryRepository.save(entry)
 
         assertNotNull(savedEntry)
         assertEquals(entry.id, savedEntry.id)
@@ -83,17 +83,17 @@ class FilmLibraryRepositoryIntegrationTest {
     @Test
     fun `should update existing film library entry`() {
         val entryId = UUID.randomUUID()
-        val originalEntry = FilmLibrary(entryId, testUser.id, testFilm.id, "Хочу посмотреть", false)
-        filmLibraryRepository.save(originalEntry)
+        val originalEntry = FilmLibraryEntry(entryId, testUser.id, testFilm.id, "Хочу посмотреть", false)
+        filmLibraryEntryRepository.save(originalEntry)
 
-        val updatedEntry = FilmLibrary(entryId, testUser.id, testFilm.id, "Уже посмотрел, потрясающе!", true)
-        val result = filmLibraryRepository.save(updatedEntry)
+        val updatedEntry = FilmLibraryEntry(entryId, testUser.id, testFilm.id, "Уже посмотрел, потрясающе!", true)
+        val result = filmLibraryEntryRepository.save(updatedEntry)
 
         assertEquals(entryId, result.id)
         assertEquals("Уже посмотрел, потрясающе!", result.comment)
         assertTrue(result.isViewed)
 
-        val foundEntry = filmLibraryRepository.findById(entryId)
+        val foundEntry = filmLibraryEntryRepository.findById(entryId)
         assertNotNull(foundEntry)
         assertEquals("Уже посмотрел, потрясающе!", foundEntry?.comment)
         assertTrue(foundEntry?.isViewed ?: false)
@@ -101,10 +101,10 @@ class FilmLibraryRepositoryIntegrationTest {
 
     @Test
     fun `should find film library entry by id`() {
-        val entry = FilmLibrary(UUID.randomUUID(), testUser.id, testFilm.id, "Обязательно посмотреть", false)
-        filmLibraryRepository.save(entry)
+        val entry = FilmLibraryEntry(UUID.randomUUID(), testUser.id, testFilm.id, "Обязательно посмотреть", false)
+        filmLibraryEntryRepository.save(entry)
 
-        val foundEntry = filmLibraryRepository.findById(entry.id)
+        val foundEntry = filmLibraryEntryRepository.findById(entry.id)
 
         assertNotNull(foundEntry)
         assertEquals(entry.id, foundEntry?.id)
@@ -118,22 +118,22 @@ class FilmLibraryRepositoryIntegrationTest {
     fun `should return null when film library entry not found by id`() {
         val nonExistentId = UUID.randomUUID()
 
-        val foundEntry = filmLibraryRepository.findById(nonExistentId)
+        val foundEntry = filmLibraryEntryRepository.findById(nonExistentId)
 
         assertNull(foundEntry)
     }
 
     @Test
     fun `should find all film library entries`() {
-        val entry1 = FilmLibrary(UUID.randomUUID(), testUser.id, testFilm.id, "Комментарий 1", false)
-        val entry2 = FilmLibrary(UUID.randomUUID(), testUser.id, testFilm.id, "Комментарий 2", true)
-        val entry3 = FilmLibrary(UUID.randomUUID(), testUser.id, testFilm.id, null, false)
+        val entry1 = FilmLibraryEntry(UUID.randomUUID(), testUser.id, testFilm.id, "Комментарий 1", false)
+        val entry2 = FilmLibraryEntry(UUID.randomUUID(), testUser.id, testFilm.id, "Комментарий 2", true)
+        val entry3 = FilmLibraryEntry(UUID.randomUUID(), testUser.id, testFilm.id, null, false)
 
-        filmLibraryRepository.save(entry1)
-        filmLibraryRepository.save(entry2)
-        filmLibraryRepository.save(entry3)
+        filmLibraryEntryRepository.save(entry1)
+        filmLibraryEntryRepository.save(entry2)
+        filmLibraryEntryRepository.save(entry3)
 
-        val allEntries = filmLibraryRepository.findAll()
+        val allEntries = filmLibraryEntryRepository.findAll()
 
         assertEquals(3, allEntries.size)
         assertTrue(allEntries.any { it.id == entry1.id })
@@ -143,19 +143,19 @@ class FilmLibraryRepositoryIntegrationTest {
 
     @Test
     fun `should return empty list when no film library entries exist`() {
-        val allEntries = filmLibraryRepository.findAll()
+        val allEntries = filmLibraryEntryRepository.findAll()
 
         assertTrue(allEntries.isEmpty())
     }
 
     @Test
     fun `should delete film library entry by id`() {
-        val entry = FilmLibrary(UUID.randomUUID(), testUser.id, testFilm.id, "Для удаления", false)
-        filmLibraryRepository.save(entry)
+        val entry = FilmLibraryEntry(UUID.randomUUID(), testUser.id, testFilm.id, "Для удаления", false)
+        filmLibraryEntryRepository.save(entry)
 
-        filmLibraryRepository.deleteById(entry.id)
+        filmLibraryEntryRepository.deleteById(entry.id)
 
-        val foundEntry = filmLibraryRepository.findById(entry.id)
+        val foundEntry = filmLibraryEntryRepository.findById(entry.id)
         assertNull(foundEntry)
     }
 
@@ -163,14 +163,14 @@ class FilmLibraryRepositoryIntegrationTest {
     fun `should not throw exception when deleting non-existent entry`() {
         val nonExistentId = UUID.randomUUID()
 
-        filmLibraryRepository.deleteById(nonExistentId)
+        filmLibraryEntryRepository.deleteById(nonExistentId)
     }
 
     @Test
     fun `should save entry with null comment`() {
-        val entry = FilmLibrary(UUID.randomUUID(), testUser.id, testFilm.id, null, false)
+        val entry = FilmLibraryEntry(UUID.randomUUID(), testUser.id, testFilm.id, null, false)
 
-        val savedEntry = filmLibraryRepository.save(entry)
+        val savedEntry = filmLibraryEntryRepository.save(entry)
 
         assertNotNull(savedEntry)
         assertNull(savedEntry.comment)
@@ -178,9 +178,9 @@ class FilmLibraryRepositoryIntegrationTest {
 
     @Test
     fun `should save entry with isViewed true`() {
-        val entry = FilmLibrary(UUID.randomUUID(), testUser.id, testFilm.id, "Посмотрел", true)
+        val entry = FilmLibraryEntry(UUID.randomUUID(), testUser.id, testFilm.id, "Посмотрел", true)
 
-        val savedEntry = filmLibraryRepository.save(entry)
+        val savedEntry = filmLibraryEntryRepository.save(entry)
 
         assertNotNull(savedEntry)
         assertTrue(savedEntry.isViewed)
@@ -188,9 +188,9 @@ class FilmLibraryRepositoryIntegrationTest {
 
     @Test
     fun `should save entry with isViewed false`() {
-        val entry = FilmLibrary(UUID.randomUUID(), testUser.id, testFilm.id, "Еще не смотрел", false)
+        val entry = FilmLibraryEntry(UUID.randomUUID(), testUser.id, testFilm.id, "Еще не смотрел", false)
 
-        val savedEntry = filmLibraryRepository.save(entry)
+        val savedEntry = filmLibraryEntryRepository.save(entry)
 
         assertNotNull(savedEntry)
         assertFalse(savedEntry.isViewed)
@@ -198,23 +198,23 @@ class FilmLibraryRepositoryIntegrationTest {
 
     @Test
     fun `should cascade delete entries when user is deleted`() {
-        val entry = FilmLibrary(UUID.randomUUID(), testUser.id, testFilm.id, "Любимый фильм пользователя", false)
-        filmLibraryRepository.save(entry)
+        val entry = FilmLibraryEntry(UUID.randomUUID(), testUser.id, testFilm.id, "Любимый фильм пользователя", false)
+        filmLibraryEntryRepository.save(entry)
 
         userRepository.deleteById(testUser.id)
 
-        val foundEntry = filmLibraryRepository.findById(entry.id)
+        val foundEntry = filmLibraryEntryRepository.findById(entry.id)
         assertNull(foundEntry)
     }
 
     @Test
     fun `should cascade delete entries when film is deleted`() {
-        val entry = FilmLibrary(UUID.randomUUID(), testUser.id, testFilm.id, "Запись о фильме", false)
-        filmLibraryRepository.save(entry)
+        val entry = FilmLibraryEntry(UUID.randomUUID(), testUser.id, testFilm.id, "Запись о фильме", false)
+        filmLibraryEntryRepository.save(entry)
 
         filmRepository.deleteById(testFilm.id)
 
-        val foundEntry = filmLibraryRepository.findById(entry.id)
+        val foundEntry = filmLibraryEntryRepository.findById(entry.id)
         assertNull(foundEntry)
     }
 }

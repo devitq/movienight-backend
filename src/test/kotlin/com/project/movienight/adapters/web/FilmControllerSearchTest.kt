@@ -1,11 +1,6 @@
 package com.project.movienight.adapters.web
 
-import com.project.movienight.application.ports.input.CreateFilmUseCase
-import com.project.movienight.application.ports.input.DeleteFilmUseCase
-import com.project.movienight.application.ports.input.EditFilmUseCase
-import com.project.movienight.application.ports.input.GetAllFilmsUseCase
-import com.project.movienight.application.ports.input.GetFilmByIdUseCase
-import com.project.movienight.application.ports.input.SearchFilmByTitleUseCase
+import com.project.movienight.application.ports.input.FilmUseCase
 import com.project.movienight.domain.model.Film
 import io.mockk.every
 import io.mockk.mockk
@@ -19,20 +14,15 @@ import java.util.UUID
 
 class FilmControllerSearchTest {
     private lateinit var mockMvc: MockMvc
-    private lateinit var searchFilmByTitleUseCase: SearchFilmByTitleUseCase
+    private lateinit var filmUseCase: FilmUseCase
 
     @BeforeEach
     fun setup() {
-        searchFilmByTitleUseCase = mockk()
+        filmUseCase = mockk()
 
         val controller =
             FilmController(
-                createFilmUseCase = mockk<CreateFilmUseCase>(),
-                editFilmUseCase = mockk<EditFilmUseCase>(),
-                deleteFilmUseCase = mockk<DeleteFilmUseCase>(),
-                getFilmByIdUseCase = mockk<GetFilmByIdUseCase>(),
-                getAllFilmsUseCase = mockk<GetAllFilmsUseCase>(),
-                searchFilmByTitleUseCase = searchFilmByTitleUseCase,
+                filmUseCase = filmUseCase,
             )
 
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build()
@@ -43,7 +33,7 @@ class FilmControllerSearchTest {
         val title = "Inception"
         val film = Film(id = UUID.randomUUID(), title = title, description = "A dream heist")
 
-        every { searchFilmByTitleUseCase.searchByTitle(title) } returns film
+        every { filmUseCase.searchByTitle(title) } returns film
 
         mockMvc
             .get("/api/films/search") {
@@ -55,14 +45,14 @@ class FilmControllerSearchTest {
                 jsonPath("$.description") { value("A dream heist") }
             }
 
-        verify(exactly = 1) { searchFilmByTitleUseCase.searchByTitle(title) }
+        verify(exactly = 1) { filmUseCase.searchByTitle(title) }
     }
 
     @Test
     fun `search returns 404 when title is not found`() {
         val title = "Unknown Title"
 
-        every { searchFilmByTitleUseCase.searchByTitle(title) } returns null
+        every { filmUseCase.searchByTitle(title) } returns null
 
         mockMvc
             .get("/api/films/search") {
@@ -72,6 +62,6 @@ class FilmControllerSearchTest {
                 content { string("") }
             }
 
-        verify(exactly = 1) { searchFilmByTitleUseCase.searchByTitle(title) }
+        verify(exactly = 1) { filmUseCase.searchByTitle(title) }
     }
 }

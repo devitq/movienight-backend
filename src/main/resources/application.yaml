@@ -101,6 +101,7 @@ integrations:
     base-url: ${JELLYFIN_BASE_URL:}
     web-url: ${JELLYFIN_WEB_URL:${JELLYFIN_BASE_URL:}}
     api-key: ${JELLYFIN_API_KEY:}
+    plugin-token: ${JELLYFIN_PLUGIN_TOKEN:}
     sync-interval-ms: ${JELLYFIN_SYNC_INTERVAL_MS:1800000}
     request-timeout-ms: ${JELLYFIN_REQUEST_TIMEOUT_MS:20000}
 

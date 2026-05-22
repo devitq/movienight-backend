@@ -281,23 +281,28 @@ class RecommendationService(
         libraryEntries: List<FilmLibraryEntry>,
         filmsById: Map<UUID, Film>,
         weights: UserRecommendationWeights,
-    ): SparseVector {
-        val profile = MutableSparseVector()
+    ): UserTasteProfile {
+        val preferenceProfile = MutableSparseVector()
+        val positiveChoiceProfile = MutableSparseVector()
+        val negativeChoiceProfile = MutableSparseVector()
+        val libraryProfile = MutableSparseVector()
 
         preferences?.weightedGenres.orEmpty().forEach { (genre, weight) ->
-            profile.add(feature("genre", genre), weight.coerceAtLeast(1).toDouble() / MAX_PREFERENCE_WEIGHT)
+            preferenceProfile.add(feature("genre", genre), weight.coerceAtLeast(1).toDouble() / MAX_PREFERENCE_WEIGHT)
         }
         preferences?.plotTypes.orEmpty().forEach { plotType ->
-            tokenize(plotType).forEach { profile.add(feature("plot", it), PREFERENCE_PLOT_WEIGHT) }
+            tokenize(plotType).forEach { preferenceProfile.add(feature("plot", it), PREFERENCE_PLOT_WEIGHT) }
         }
-        preferences?.eras.orEmpty().forEach { profile.add(feature("era", it), PREFERENCE_ERA_WEIGHT) }
-        preferences?.castAndDirectors.orEmpty().forEach { profile.add(feature("person", it), PREFERENCE_PERSON_WEIGHT) }
-        preferences?.moods.orEmpty().forEach { profile.add(feature("mood", it), PREFERENCE_MOOD_WEIGHT) }
+        preferences?.eras.orEmpty().forEach { preferenceProfile.add(feature("era", it), PREFERENCE_ERA_WEIGHT) }
+        preferences?.castAndDirectors.orEmpty().forEach {
+            preferenceProfile.add(feature("person", it), PREFERENCE_PERSON_WEIGHT)
+        }
+        preferences?.moods.orEmpty().forEach { preferenceProfile.add(feature("mood", it), PREFERENCE_MOOD_WEIGHT) }
         preferences
             ?.contentTypes
             .orEmpty()
             .forEach {
-                profile.add(
+                preferenceProfile.add(
                     feature("type", it.name),
                     PREFERENCE_CONTENT_TYPE_WEIGHT,
                 )
@@ -306,30 +311,47 @@ class RecommendationService(
         ratings.forEach { rating ->
             val film = filmsById[rating.filmId] ?: return@forEach
             val signal = ratingSignal(rating.score)
-            profile.add(buildFilmVector(film, weights).scale(signal))
+            val filmVector = buildFilmVector(film, weights)
+            when {
+                signal >= POSITIVE_CHOICE_SIGNAL_THRESHOLD -> positiveChoiceProfile.add(filmVector.scale(signal))
+                signal <= NEGATIVE_CHOICE_SIGNAL_THRESHOLD -> negativeChoiceProfile.add(filmVector.scale(-signal))
+            }
         }
 
         libraryEntries.filterNot { it.isViewed }.forEach { entry ->
             val film = filmsById[entry.filmId] ?: return@forEach
-            profile.add(buildFilmVector(film, weights).scale(LIBRARY_SIGNAL_WEIGHT))
+            libraryProfile.add(buildFilmVector(film, weights).scale(LIBRARY_SIGNAL_WEIGHT))
         }
 
-        return profile.toSparseVector()
+        val overallProfile = MutableSparseVector()
+        overallProfile.add(preferenceProfile.toSparseVector())
+        overallProfile.add(positiveChoiceProfile.toSparseVector().scale(EXPLICIT_CHOICE_PROFILE_WEIGHT))
+        overallProfile.add(negativeChoiceProfile.toSparseVector().scale(-EXPLICIT_CHOICE_PROFILE_WEIGHT))
+        overallProfile.add(libraryProfile.toSparseVector())
+
+        return UserTasteProfile(
+            overall = overallProfile.toSparseVector(),
+            preferences = preferenceProfile.toSparseVector(),
+            positiveChoices = positiveChoiceProfile.toSparseVector(),
+            negativeChoices = negativeChoiceProfile.toSparseVector(),
+            library = libraryProfile.toSparseVector(),
+        )
     }
 
     private fun scoreFilm(
         film: Film,
         query: RecommendationQuery,
         preferences: UserPreferences?,
-        userProfile: SparseVector,
+        userProfile: UserTasteProfile,
         inLibrary: Boolean,
         weights: UserRecommendationWeights,
     ): ScoredRecommendation {
         val reasons = mutableListOf<String>()
         val filmVector = buildFilmVector(film, weights)
-        val preferenceScore = cosineSimilarity(userProfile, filmVector)
+        val relevanceBreakdown = relevanceScore(userProfile, filmVector)
+        val preferenceScore = relevanceBreakdown.combined
         val qualityScore = qualityScore(film)
-        val contextScore = contextScore(film, query, preferences)
+        val contextScore = contextScore(film, query, preferences, userProfile, preferenceScore)
         val noveltyScore = if (inLibrary) LIBRARY_NOVELTY_SCORE else CATALOG_NOVELTY_SCORE
         val diversityScore = diversityScore(film, preferences)
         val score =
@@ -339,7 +361,9 @@ class RecommendationService(
                 weights.noveltyWeight * noveltyScore +
                 weights.diversityWeight * diversityScore
 
-        if (preferenceScore > STRONG_REASON_THRESHOLD) {
+        if (relevanceBreakdown.positiveSimilarity > EXPLICIT_CHOICE_REASON_THRESHOLD) {
+            reasons += "Similar to films you rated highly"
+        } else if (preferenceScore > STRONG_REASON_THRESHOLD) {
             reasons += "Similar to user preferences and rating history"
         }
         matchingGenres(film, preferences).take(MAX_REASON_ITEMS).forEach { genre ->
@@ -397,10 +421,58 @@ class RecommendationService(
         return vector.toSparseVector()
     }
 
+    private fun relevanceScore(
+        userProfile: UserTasteProfile,
+        filmVector: SparseVector,
+    ): RelevanceBreakdown {
+        val overallSimilarity = cosineSimilarity(userProfile.overall, filmVector)
+        val preferenceSimilarity = cosineSimilarity(userProfile.preferences, filmVector)
+        val positiveSimilarity = cosineSimilarity(userProfile.positiveChoices, filmVector).coerceAtLeast(0.0)
+        val negativeSimilarity = cosineSimilarity(userProfile.negativeChoices, filmVector).coerceAtLeast(0.0)
+        val librarySimilarity = cosineSimilarity(userProfile.library, filmVector).coerceAtLeast(0.0)
+
+        if (!userProfile.hasExplicitChoices) {
+            return RelevanceBreakdown(
+                combined = overallSimilarity,
+                positiveSimilarity = positiveSimilarity,
+            )
+        }
+
+        val positiveComponent =
+            if (userProfile.hasPositiveChoices) {
+                positiveSimilarity * POSITIVE_CHOICE_RELEVANCE_WEIGHT
+            } else {
+                0.0
+            }
+        val preferenceComponent = preferenceSimilarity.coerceAtLeast(0.0) * BROAD_PREFERENCE_RELEVANCE_WEIGHT
+        val libraryComponent =
+            if (userProfile.hasLibraryChoices) {
+                librarySimilarity * LIBRARY_CHOICE_RELEVANCE_WEIGHT
+            } else {
+                0.0
+            }
+        val fallbackComponent = overallSimilarity.coerceAtLeast(0.0) * OVERALL_RELEVANCE_FALLBACK_WEIGHT
+        val negativePenalty =
+            if (userProfile.hasNegativeChoices) {
+                negativeSimilarity * NEGATIVE_CHOICE_RELEVANCE_PENALTY
+            } else {
+                0.0
+            }
+
+        return RelevanceBreakdown(
+            combined =
+                (positiveComponent + preferenceComponent + libraryComponent + fallbackComponent - negativePenalty)
+                    .coerceIn(MIN_RELEVANCE_SCORE, MAX_RELEVANCE_SCORE),
+            positiveSimilarity = positiveSimilarity,
+        )
+    }
+
     private fun contextScore(
         film: Film,
         query: RecommendationQuery,
         preferences: UserPreferences?,
+        userProfile: UserTasteProfile,
+        relevanceScore: Double,
     ): Double {
         var score = 0.0
         var checks = 0
@@ -426,7 +498,16 @@ class RecommendationService(
             }
         }
 
-        return if (checks == 0) BASE_CONTEXT_SCORE else score / checks
+        val baseScore = if (checks == 0) BASE_CONTEXT_SCORE else score / checks
+        if (!userProfile.hasExplicitChoices) {
+            return baseScore
+        }
+
+        val relevanceGate =
+            MIN_CONTEXT_RELEVANCE_GATE +
+                (MAX_CONTEXT_RELEVANCE_GATE - MIN_CONTEXT_RELEVANCE_GATE) *
+                relevanceScore.coerceIn(0.0, 1.0)
+        return baseScore * relevanceGate
     }
 
     private fun qualityScore(film: Film): Double {
@@ -452,9 +533,9 @@ class RecommendationService(
         val filmGenres = film.genres.map(::normalize).toSet()
         return when {
             preferredGenres.isEmpty() -> BASE_DIVERSITY_SCORE
-            filmGenres.none { it in preferredGenres } -> HIGH_DIVERSITY_SCORE
-            filmGenres.size > 1 -> MEDIUM_DIVERSITY_SCORE
-            else -> LOW_DIVERSITY_SCORE
+            filmGenres.none { it in preferredGenres } -> LOW_DIVERSITY_SCORE
+            filmGenres.size > 1 -> HIGH_DIVERSITY_SCORE
+            else -> MEDIUM_DIVERSITY_SCORE
         }
     }
 
@@ -579,6 +660,24 @@ class RecommendationService(
         val diversityScore: Double,
     )
 
+    private data class RelevanceBreakdown(
+        val combined: Double,
+        val positiveSimilarity: Double,
+    )
+
+    private data class UserTasteProfile(
+        val overall: SparseVector,
+        val preferences: SparseVector,
+        val positiveChoices: SparseVector,
+        val negativeChoices: SparseVector,
+        val library: SparseVector,
+    ) {
+        val hasPositiveChoices: Boolean = positiveChoices.values.isNotEmpty()
+        val hasNegativeChoices: Boolean = negativeChoices.values.isNotEmpty()
+        val hasLibraryChoices: Boolean = library.values.isNotEmpty()
+        val hasExplicitChoices: Boolean = hasPositiveChoices || hasNegativeChoices || hasLibraryChoices
+    }
+
     private data class ScoreContributions(
         val relevance: Double,
         val quality: Double,
@@ -636,6 +735,7 @@ class RecommendationService(
         private const val PREFERENCE_MOOD_WEIGHT = 0.8
         private const val PREFERENCE_CONTENT_TYPE_WEIGHT = 0.5
         private const val LIBRARY_SIGNAL_WEIGHT = 0.25
+        private const val EXPLICIT_CHOICE_PROFILE_WEIGHT = 1.8
 
         private const val LEARNING_RATE = 0.03
 
@@ -644,11 +744,23 @@ class RecommendationService(
         private const val BASE_CONTEXT_SCORE = 0.5
         private const val BASE_QUALITY_SCORE = 0.5
         private const val BASE_DIVERSITY_SCORE = 0.5
-        private const val HIGH_DIVERSITY_SCORE = 1.0
-        private const val MEDIUM_DIVERSITY_SCORE = 0.6
-        private const val LOW_DIVERSITY_SCORE = 0.3
+        private const val HIGH_DIVERSITY_SCORE = 0.75
+        private const val MEDIUM_DIVERSITY_SCORE = 0.45
+        private const val LOW_DIVERSITY_SCORE = 0.15
         private const val STRONG_REASON_THRESHOLD = 0.15
+        private const val EXPLICIT_CHOICE_REASON_THRESHOLD = 0.12
         private const val QUALITY_REASON_THRESHOLD = 0.75
+        private const val POSITIVE_CHOICE_SIGNAL_THRESHOLD = 0.4
+        private const val NEGATIVE_CHOICE_SIGNAL_THRESHOLD = -0.3
+        private const val POSITIVE_CHOICE_RELEVANCE_WEIGHT = 0.78
+        private const val BROAD_PREFERENCE_RELEVANCE_WEIGHT = 0.12
+        private const val LIBRARY_CHOICE_RELEVANCE_WEIGHT = 0.08
+        private const val OVERALL_RELEVANCE_FALLBACK_WEIGHT = 0.08
+        private const val NEGATIVE_CHOICE_RELEVANCE_PENALTY = 0.65
+        private const val MIN_RELEVANCE_SCORE = -1.0
+        private const val MAX_RELEVANCE_SCORE = 1.0
+        private const val MIN_CONTEXT_RELEVANCE_GATE = 0.35
+        private const val MAX_CONTEXT_RELEVANCE_GATE = 1.0
 
         private val tokenSeparatorRegex = Regex("[^\\p{L}0-9]+")
         private val stopWords =

@@ -62,7 +62,9 @@ class FilmLibraryService(
                 )
             )
             businessMetricsService.recordLibraryEvent()
-            log.info("Film re-added to library: userId={}, filmId={}, entryId={}", command.userId, command.filmId, saved.id)
+            log.info(
+                "Film re-added to library: userId={}, filmId={}, entryId={}",
+                command.userId, command.filmId, saved.id)
             return saved
         }
 
@@ -101,7 +103,9 @@ class FilmLibraryService(
 
         filmLibraryRepository.deleteById(existingLibrary.id)
         businessMetricsService.recordLibraryEvent()
-        log.info("Film removed from library: userId={}, filmId={}, entryId={}", command.userId, command.filmId, existingLibrary.id)
+        log.info(
+            "Film removed from library: userId={}, filmId={}, entryId={}",
+            command.userId, command.filmId, existingLibrary.id)
         return existingLibrary
     }
 

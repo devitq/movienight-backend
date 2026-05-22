@@ -340,7 +340,13 @@ class RecommendationSmokeTest {
         mockMvc
             .post("/api/users") {
                 contentType = MediaType.APPLICATION_JSON
-                content = objectMapper.writeValueAsString(CreateUserRequest(name = "Harry", email = "harry@example.com"))
+                content =
+                    objectMapper.writeValueAsString(
+                        CreateUserRequest(
+                            name = "Harry",
+                            email = "harry@example.com",
+                        ),
+                    )
             }.andExpect {
                 status { isCreated() }
             }
@@ -365,7 +371,8 @@ class RecommendationSmokeTest {
         val likedSecondFilmId =
             createFilm(
                 title = "Chamber of Magic",
-                description = "Young friends return to a wizard school and uncover a secret chamber full of magical danger.",
+                description =
+                    "Young friends return to a wizard school and uncover a secret chamber full of magical danger.",
                 releaseYear = 2002,
                 genres = listOf("Fantasy", "Adventure", "Family"),
                 imdbRating = 8.1,

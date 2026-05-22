@@ -33,13 +33,17 @@ class FilmService(
     GetFilmByIdUseCase,
     GetAllFilmsUseCase,
     SearchFilmByTitleUseCase {
-
     private val log = LoggerFactory.getLogger(javaClass)
 
     override fun create(command: CreateFilmCommand): Film {
         log.info("Creating new film: title='{}', contentType={}", command.title, command.contentType)
-        log.debug("Create film request details: title='{}', descriptionLength={}, genres={}, releaseYear={}",
-            command.title, command.description.length, command.genres, command.releaseYear)
+        log.debug(
+            "Create film request details: title='{}', descriptionLength={}, genres={}, releaseYear={}",
+            command.title,
+            command.description.length,
+            command.genres,
+            command.releaseYear,
+        )
 
         val sample = Timer.start(meterRegistry)
 
@@ -55,21 +59,22 @@ class FilmService(
                 throw BlockedValueException(target = "Film", field = "description")
             }
 
-            val film = Film(
-                id = idGenerator.generateId(),
-                title = command.title,
-                description = command.description,
-                contentType = command.contentType,
-                releaseYear = command.releaseYear,
-                genres = command.genres,
-                cast = command.cast,
-                directors = command.directors,
-                imdbRating = command.imdbRating,
-                platformRating = command.platformRating,
-                externalUrl = command.externalUrl,
-                jellyfinItemId = command.jellyfinItemId,
-                jellyfinLibraryId = command.jellyfinLibraryId,
-            )
+            val film =
+                Film(
+                    id = idGenerator.generateId(),
+                    title = command.title,
+                    description = command.description,
+                    contentType = command.contentType,
+                    releaseYear = command.releaseYear,
+                    genres = command.genres,
+                    cast = command.cast,
+                    directors = command.directors,
+                    imdbRating = command.imdbRating,
+                    platformRating = command.platformRating,
+                    externalUrl = command.externalUrl,
+                    jellyfinItemId = command.jellyfinItemId,
+                    jellyfinLibraryId = command.jellyfinLibraryId,
+                )
 
             val saved = filmRepository.save(film)
             filmCreatedCounter.increment()
@@ -80,10 +85,18 @@ class FilmService(
         }
     }
 
-    override fun edit(id: UUID, command: EditFilmCommand): Film {
+    override fun edit(
+        id: UUID,
+        command: EditFilmCommand,
+    ): Film {
         log.info("Editing film: id={}", id)
-        log.debug("Edit film request details: id={}, title='{}', descriptionLength={}, genres={}",
-            id, command.title, command.description.length, command.genres)
+        log.debug(
+            "Edit film request details: id={}, title='{}', descriptionLength={}, genres={}",
+            id,
+            command.title,
+            command.description.length,
+            command.genres,
+        )
 
         val sample = Timer.start(meterRegistry)
 
@@ -108,20 +121,21 @@ class FilmService(
 
             log.debug("Existing film found: id={}, current title='{}'", film.id, film.title)
 
-            film = film.copy(
-                title = command.title,
-                description = command.description,
-                contentType = command.contentType,
-                releaseYear = command.releaseYear,
-                genres = command.genres,
-                cast = command.cast,
-                directors = command.directors,
-                imdbRating = command.imdbRating,
-                platformRating = command.platformRating,
-                externalUrl = command.externalUrl,
-                jellyfinItemId = command.jellyfinItemId,
-                jellyfinLibraryId = command.jellyfinLibraryId,
-            )
+            film =
+                film.copy(
+                    title = command.title,
+                    description = command.description,
+                    contentType = command.contentType,
+                    releaseYear = command.releaseYear,
+                    genres = command.genres,
+                    cast = command.cast,
+                    directors = command.directors,
+                    imdbRating = command.imdbRating,
+                    platformRating = command.platformRating,
+                    externalUrl = command.externalUrl,
+                    jellyfinItemId = command.jellyfinItemId,
+                    jellyfinLibraryId = command.jellyfinLibraryId,
+                )
 
             val saved = filmRepository.save(film)
             filmEditedCounter.increment()
@@ -157,8 +171,9 @@ class FilmService(
 
     override fun getById(id: UUID): Film {
         log.debug("Fetching film by id: {}", id)
-        val film = filmRepository.findById(id)
-            ?: throw EntityNotFoundException(entity = "Film", id = id.toString())
+        val film =
+            filmRepository.findById(id)
+                ?: throw EntityNotFoundException(entity = "Film", id = id.toString())
         log.debug("Film found: id={}, title='{}'", film.id, film.title)
         return film
     }
@@ -181,38 +196,45 @@ class FilmService(
         return film
     }
 
-    private val filmCreatedCounter = Counter
-        .builder("film_created_total")
-        .description("Total number of created films")
-        .register(meterRegistry)
+    private val filmCreatedCounter =
+        Counter
+            .builder("film_created_total")
+            .description("Total number of created films")
+            .register(meterRegistry)
 
-    private val filmEditedCounter = Counter
-        .builder("film_edited_total")
-        .description("Total number of successfully edited films")
-        .register(meterRegistry)
+    private val filmEditedCounter =
+        Counter
+            .builder("film_edited_total")
+            .description("Total number of successfully edited films")
+            .register(meterRegistry)
 
-    private val filmDeletedCounter = Counter
-        .builder("film_deleted_total")
-        .description("Total number of successfully deleted films")
-        .register(meterRegistry)
+    private val filmDeletedCounter =
+        Counter
+            .builder("film_deleted_total")
+            .description("Total number of successfully deleted films")
+            .register(meterRegistry)
 
-    private val filmBlockedCounter = Counter
-        .builder("films.blocked")
-        .description("Total blocked film operations")
-        .register(meterRegistry)
+    private val filmBlockedCounter =
+        Counter
+            .builder("films.blocked")
+            .description("Total blocked film operations")
+            .register(meterRegistry)
 
-    private val createFilmTimer = Timer
-        .builder("films.create.duration")
-        .description("Film creation duration")
-        .register(meterRegistry)
+    private val createFilmTimer =
+        Timer
+            .builder("films.create.duration")
+            .description("Film creation duration")
+            .register(meterRegistry)
 
-    private val editFilmTimer = Timer
-        .builder("films.edit.duration")
-        .description("Film edit duration")
-        .register(meterRegistry)
+    private val editFilmTimer =
+        Timer
+            .builder("films.edit.duration")
+            .description("Film edit duration")
+            .register(meterRegistry)
 
-    private val deleteFilmTimer = Timer
-        .builder("films.delete.duration")
-        .description("Film deletion duration")
-        .register(meterRegistry)
+    private val deleteFilmTimer =
+        Timer
+            .builder("films.delete.duration")
+            .description("Film deletion duration")
+            .register(meterRegistry)
 }

@@ -27,7 +27,6 @@ class UserService(
     DeleteUserUseCase,
     GetUserByIdUseCase,
     GetAllUsersUseCase {
-
     private val log = LoggerFactory.getLogger(javaClass)
 
     override fun create(command: CreateUserCommand): User {
@@ -39,20 +38,24 @@ class UserService(
             throw BlockedValueException(target = "User", field = "name")
         }
 
-        val user = User(
-            id = idGenerator.generateId(),
-            name = command.name,
-            email = command.email,
-            library = null,
-            jellyfinUserId = null,
-        )
+        val user =
+            User(
+                id = idGenerator.generateId(),
+                name = command.name,
+                email = command.email,
+                library = null,
+                jellyfinUserId = null,
+            )
         val saved = userRepository.save(user)
 
         log.info("User created successfully: id={}, email='{}'", saved.id, saved.email)
         return saved
     }
 
-    override fun edit(id: UUID, command: EditUserCommand): User {
+    override fun edit(
+        id: UUID,
+        command: EditUserCommand,
+    ): User {
         log.info("Editing user: id={}", id)
         log.debug("Edit user request: id={}, name='{}', jellyfinUserId={}", id, command.name, command.jellyfinUserId)
 
@@ -61,15 +64,17 @@ class UserService(
             throw BlockedValueException(target = "User", field = "name")
         }
 
-        var user = userRepository.findById(id)
-            ?: throw EntityNotFoundException(entity = "User", id = id.toString())
+        var user =
+            userRepository.findById(id)
+                ?: throw EntityNotFoundException(entity = "User", id = id.toString())
 
         log.debug("Existing user found: id={}, current name='{}'", user.id, user.name)
 
-        user = user.copy(
-            name = command.name,
-            jellyfinUserId = command.jellyfinUserId ?: user.jellyfinUserId,
-        )
+        user =
+            user.copy(
+                name = command.name,
+                jellyfinUserId = command.jellyfinUserId ?: user.jellyfinUserId,
+            )
 
         val saved = userRepository.save(user)
         log.info("User edited successfully: id={}, new name='{}'", saved.id, saved.name)
@@ -80,8 +85,9 @@ class UserService(
         log.info("Deleting user: id={}", id)
         log.debug("Delete user request: id={}", id)
 
-        val user = userRepository.findById(id)
-            ?: throw EntityNotFoundException(entity = "User", id = id.toString())
+        val user =
+            userRepository.findById(id)
+                ?: throw EntityNotFoundException(entity = "User", id = id.toString())
 
         log.debug("User found for deletion: id={}, email='{}'", user.id, user.email)
 
@@ -91,8 +97,9 @@ class UserService(
 
     override fun getById(id: UUID): User {
         log.debug("Fetching user by id: {}", id)
-        val user = userRepository.findById(id)
-            ?: throw EntityNotFoundException(entity = "User", id = id.toString())
+        val user =
+            userRepository.findById(id)
+                ?: throw EntityNotFoundException(entity = "User", id = id.toString())
         log.debug("User found: id={}, name='{}', email='{}'", user.id, user.name, user.email)
         return user
     }

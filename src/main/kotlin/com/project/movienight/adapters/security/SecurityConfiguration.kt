@@ -23,6 +23,8 @@ class SecurityConfiguration(
                 auth
                     .requestMatchers("/", "/login/**", "/oauth2/**", "/h2-console/**", "/actuator/health")
                     .permitAll()
+                    .requestMatchers("/api/v1/docs/**", "/api/v1/swagger-ui/**", "/swagger-ui/**")
+                    .permitAll()
                     .requestMatchers(
                         "/api/integrations/jellyfin/events",
                         "/api/integrations/jellyfin/sync",

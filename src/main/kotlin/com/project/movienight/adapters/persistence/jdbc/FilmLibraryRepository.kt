@@ -18,6 +18,7 @@ class FilmLibraryRepository(
             filmId = UUID.fromString(rs.getString("film_id")),
             comment = rs.getString("comment"),
             isViewed = rs.getBoolean("is_viewed"),
+            watchedAt = rs.getTimestamp("watched_at")?.toLocalDateTime(),
         )
     }
 
@@ -26,26 +27,28 @@ class FilmLibraryRepository(
             jdbc.update(
                 """
                 UPDATE favorites
-                SET user_id = ?, film_id = ?, comment = ?, is_viewed = ?
+                SET user_id = ?, film_id = ?, comment = ?, is_viewed = ?, watched_at = ?
                 WHERE id = ?
                 """.trimIndent(),
                 filmLibrary.userId,
                 filmLibrary.filmId,
                 filmLibrary.comment,
                 filmLibrary.isViewed,
+                filmLibrary.watchedAt,
                 filmLibrary.id,
             )
         if (updatedRows == 0) {
             jdbc.update(
                 """
-                INSERT INTO favorites (id, user_id, film_id, comment, is_viewed)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO favorites (id, user_id, film_id, comment, is_viewed, watched_at)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """.trimIndent(),
                 filmLibrary.id,
                 filmLibrary.userId,
                 filmLibrary.filmId,
                 filmLibrary.comment,
                 filmLibrary.isViewed,
+                filmLibrary.watchedAt,
             )
         }
         return filmLibrary
@@ -54,16 +57,33 @@ class FilmLibraryRepository(
     override fun findById(id: UUID): FilmLibrary? {
         val entries =
             jdbc.query(
-                "SELECT id, user_id, film_id, comment, is_viewed FROM favorites WHERE id = ?",
+                "SELECT id, user_id, film_id, comment, is_viewed, watched_at FROM favorites WHERE id = ?",
                 filmLibraryRowMapper,
                 id,
             )
         return entries.firstOrNull()
     }
 
+    override fun findByUserIdAndFilmId(
+        userId: UUID,
+        filmId: UUID,
+    ): FilmLibrary? {
+        val entries =
+            jdbc.query(
+                """
+                SELECT id, user_id, film_id, comment, is_viewed, watched_at
+                FROM favorites WHERE user_id = ? AND film_id = ?
+                """.trimIndent(),
+                filmLibraryRowMapper,
+                userId,
+                filmId,
+            )
+        return entries.firstOrNull()
+    }
+
     override fun findAll(): List<FilmLibrary> =
         jdbc.query(
-            "SELECT id, user_id, film_id, comment, is_viewed FROM favorites",
+            "SELECT id, user_id, film_id, comment, is_viewed, watched_at FROM favorites",
             filmLibraryRowMapper,
         )
 

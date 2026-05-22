@@ -11,6 +11,7 @@ data class UserEntity(
     val email: String,
     val provider: String?,
     val providerId: String?,
+    val jellyfinUserId: String?,
     val createdAt: LocalDateTime,
 )
 
@@ -20,6 +21,8 @@ fun UserEntity.toDomain(): User =
         name = name,
         email = email,
         library = null,
+        preferences = null,
+        jellyfinUserId = jellyfinUserId,
     )
 
 fun User.toEntity(
@@ -33,5 +36,6 @@ fun User.toEntity(
         email = email,
         provider = provider?.name,
         providerId = providerId,
+        jellyfinUserId = jellyfinUserId,
         createdAt = createdAt,
     )

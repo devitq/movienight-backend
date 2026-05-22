@@ -7,6 +7,7 @@ data class UserResponse(
     val id: UUID,
     val name: String,
     val email: String,
+    val jellyfinUserId: String?,
 ) {
     companion object {
         fun fromDomain(user: User): UserResponse =
@@ -14,6 +15,7 @@ data class UserResponse(
                 id = user.id,
                 name = user.name,
                 email = user.email,
+                jellyfinUserId = user.jellyfinUserId,
             )
     }
 }

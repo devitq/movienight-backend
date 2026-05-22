@@ -16,13 +16,11 @@
     function createTextButton(text, className, onClick) {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.setAttribute('is', 'emby-button');
+        btn.is = 'emby-button';
         btn.className = `emby-button raised ${className}`;
         btn.style.margin = '0.5em';
         btn.style.padding = '0.4em 1em';
-        const span = document.createElement('span');
-        span.textContent = text;
-        btn.appendChild(span);
+        btn.innerHTML = `<span>${text}</span>`;
         btn.onclick = onClick;
         return btn;
     }
@@ -30,18 +28,14 @@
     function createIconButton(icon, title, className, onClick) {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.setAttribute('is', 'emby-button');
+        btn.is = 'emby-button';
         btn.className = `button-flat detailButton emby-button ${className}`;
         btn.title = title;
-        btn.setAttribute('aria-label', title);
-        const content = document.createElement('div');
-        content.className = 'detailButton-content';
-        const iconSpan = document.createElement('span');
-        iconSpan.className = 'material-icons detailButton-icon';
-        iconSpan.setAttribute('aria-hidden', 'true');
-        iconSpan.textContent = icon;
-        content.appendChild(iconSpan);
-        btn.appendChild(content);
+        btn.innerHTML = `
+            <div class="detailButton-content">
+                <span class="material-icons detailButton-icon ${icon}" aria-hidden="true"></span>
+            </div>
+        `;
         btn.onclick = onClick;
         return btn;
     }
@@ -53,14 +47,14 @@
             const itemId = getItemIdFromUrl();
             if (itemId) {
                 // MovieNight Rating
-                if (!detailButtons.querySelector('.btnMovieNightRate')) {
+                if (!document.querySelector('.btnMovieNightRate')) {
                     const rateBtn = createIconButton('star_rate', 'Rate on MovieNight', 'btnMovieNightRate', (e) => {
                         e.preventDefault(); e.stopPropagation(); showRatingDialog(itemId);
                     });
                     insertInDetailRow(detailButtons, rateBtn);
                 }
                 // Mark Viewed in MovieNight
-                if (!detailButtons.querySelector('.btnMovieNightMarkViewed')) {
+                if (!document.querySelector('.btnMovieNightMarkViewed')) {
                     const viewedBtn = createIconButton('visibility', 'Mark Viewed in MovieNight', 'btnMovieNightMarkViewed', (e) => {
                         e.preventDefault(); e.stopPropagation(); submitViewed(itemId);
                     });
@@ -71,17 +65,13 @@
 
         // 2. Library Pages - Add text buttons to toolbar
         const toolBar = document.querySelector('.libraryPage:not(.itemDetailPage) .flex.align-items-center.justify-content-center.focuscontainer-x');
-        if (toolBar) {
-            if (!toolBar.querySelector('.btnMovieNightRecommend')) {
-                toolBar.appendChild(createTextButton('Recommend Film', 'btnMovieNightRecommend', (e) => {
-                    e.preventDefault(); showRecommendation();
-                }));
-            }
-            if (!toolBar.querySelector('.btnMovieNightAddMovie')) {
-                toolBar.appendChild(createTextButton('Add Movie (STRM)', 'btnMovieNightAddMovie', (e) => {
-                    e.preventDefault(); showAddMovieDialog();
-                }));
-            }
+        if (toolBar && !document.querySelector('.btnMovieNightRecommend')) {
+             toolBar.appendChild(createTextButton('Recommend Film', 'btnMovieNightRecommend', (e) => {
+                 e.preventDefault(); showRecommendation();
+             }));
+             toolBar.appendChild(createTextButton('Add Movie (STRM)', 'btnMovieNightAddMovie', (e) => {
+                 e.preventDefault(); showAddMovieDialog();
+             }));
         }
 
         // 3. Home Page - Prepend a MovieNight section
@@ -123,7 +113,7 @@
         const overlay = document.createElement('div');
         overlay.className = 'dialogBackdrop dialogBackdropOpened';
         overlay.style.zIndex = '99998';
-        overlay.style.backgroundColor = 'var(--dialog-backdrop, rgba(0,0,0,0.6))';
+        overlay.style.backgroundColor = 'rgba(0,0,0,0.6)';
         overlay.style.position = 'fixed';
         overlay.style.top = '0'; overlay.style.left = '0'; overlay.style.right = '0'; overlay.style.bottom = '0';
         overlay.style.backdropFilter = 'blur(4px)';
@@ -139,25 +129,19 @@
         dialog.style.zIndex = '99999';
         dialog.style.padding = '2em';
         dialog.style.minWidth = '320px';
-        dialog.style.backgroundColor = 'var(--theme-body-background)';
-        dialog.style.borderRadius = '1em';
-        dialog.style.color = 'var(--theme-body-color)';
+        dialog.style.backgroundColor = '#1a1a1a';
+        dialog.style.borderRadius = '1.5em';
+        dialog.style.color = 'white';
         dialog.style.boxShadow = '0 10px 25px rgba(0,0,0,0.5)';
-        dialog.style.border = '1px solid var(--theme-light-btn-border-color, transparent)';
+        dialog.style.border = '1px solid #333';
 
         dialog.innerHTML = `
-            <h2 class="dialogTitle">${title}</h2>
-            <div class="dialog-content"></div>
-            <div class="dialog-footer">
-                <button is="emby-button" class="emby-button button-flat btnCancel">Cancel</button>
+            <h2 style="margin-top:0; text-align:center; font-weight:400;">${title}</h2>
+            <div class="dialog-content" style="margin:1.5em 0;"></div>
+            <div class="dialog-footer" style="display:flex; gap:1em;">
+                <button is="emby-button" class="emby-button button-flat btnCancel" style="flex:1; color: white;">Cancel</button>
             </div>
         `;
-        const content = dialog.querySelector('.dialog-content');
-        content.style.margin = '1.5em 0';
-        const footer = dialog.querySelector('.dialog-footer');
-        footer.style.display = 'flex';
-        footer.style.gap = '1em';
-        dialog.querySelector('.btnCancel').style.flex = '1';
         return dialog;
     }
 
@@ -165,19 +149,15 @@
         const overlay = createOverlay();
         const dialog = createDialogBase('Rate on MovieNight');
         const content = dialog.querySelector('.dialog-content');
-        const grid = document.createElement('div');
-        grid.className = 'rating-grid';
-        grid.style.display = 'grid';
-        grid.style.gridTemplateColumns = 'repeat(5, 1fr)';
-        grid.style.gap = '0.6em';
-        content.appendChild(grid);
+
+        content.innerHTML = `<div class="rating-grid" style="display:grid; grid-template-columns:repeat(5, 1fr); gap:0.6em;"></div>`;
+        const grid = content.querySelector('.rating-grid');
 
         const cleanup = () => { if (overlay.parentNode) document.body.removeChild(overlay); };
 
         for (let i = 1; i <= 10; i++) {
             const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.setAttribute('is', 'emby-button');
+            btn.type = 'button'; btn.is = 'emby-button';
             btn.className = 'emby-button raised';
             btn.innerText = i;
             btn.style.padding = '0.8em 0';
@@ -225,7 +205,6 @@
         };
 
         dialog.querySelector('.btnCancel').onclick = cleanup;
-        dialog.querySelector('.btnCancel').style.width = '100%';
         overlay.onclick = (e) => { if (e.target === overlay) cleanup(); };
         overlay.appendChild(dialog);
         document.body.appendChild(overlay);

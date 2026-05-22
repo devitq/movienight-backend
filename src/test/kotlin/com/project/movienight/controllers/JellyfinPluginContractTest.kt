@@ -1,6 +1,7 @@
 package com.project.movienight.controllers
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.hamcrest.Matchers.hasItem
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -38,17 +39,18 @@ class JellyfinPluginContractTest {
     fun `plugin sync payload creates mapped user and film`() {
         postSyncPayload()
 
+        val syncedRecommendationTitlePath = "$[?(@.jellyfinItemId == '$jellyfinItemId')].title"
+        val syncedRecommendationWatchUrlPath = "$[?(@.jellyfinItemId == '$jellyfinItemId')].watchUrl"
+        val expectedWatchUrl = "https://jellyfin.example.test/web/#/details?id=$jellyfinItemId"
+
         mockMvc
             .perform(
                 get("/api/integrations/jellyfin/users/$dashedJellyfinUserId/recommendations")
                     .header("X-MovieNight-Plugin-Token", "test-token"),
             ).andExpect(status().isOk)
-            .andExpect(jsonPath("$[0].title").value("Jellyfin Contract Film"))
-            .andExpect(jsonPath("$[0].jellyfinItemId").value(jellyfinItemId))
-            .andExpect(
-                jsonPath("$[0].watchUrl")
-                    .value("https://jellyfin.example.test/web/#/details?id=$jellyfinItemId"),
-            )
+            .andExpect(jsonPath("$[*].jellyfinItemId").value(hasItem(jellyfinItemId)))
+            .andExpect(jsonPath(syncedRecommendationTitlePath).value(hasItem("Jellyfin Contract Film")))
+            .andExpect(jsonPath(syncedRecommendationWatchUrlPath).value(hasItem(expectedWatchUrl)))
 
         mockMvc
             .perform(

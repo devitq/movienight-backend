@@ -115,6 +115,11 @@ services:
       - censored
       - epstein
       - python
+
 logging:
+  level:
+    com.project.movienight: DEBUG
+    org.springframework: WARN
+    org.flywaydb: WARN
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{traceId}] %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [%thread] %cyan(%logger{36}) - %msg%n"

@@ -30,12 +30,12 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Run CI quality gate
-        run: ./gradlew clean check bootJar --stacktrace --no-daemon
-
       - name: Set artifact name
         id: meta
         run: echo "artifact-name=build-${{ github.run_id }}-${{ github.run_attempt }}" >> "$GITHUB_OUTPUT"
+
+      - name: Run CI quality gate
+        run: ./gradlew clean check bootJar --stacktrace --no-daemon
 
       - name: Upload build artifacts
         if: always()

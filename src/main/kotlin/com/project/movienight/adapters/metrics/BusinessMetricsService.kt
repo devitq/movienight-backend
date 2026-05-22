@@ -1,5 +1,6 @@
 package com.project.movienight.adapters.metrics
 
+import com.project.movienight.application.ports.output.BusinessMetricsPort
 import com.project.movienight.domain.model.JellyfinSyncSummary
 import com.project.movienight.domain.model.RecommendationEventType
 import io.micrometer.core.instrument.Counter
@@ -11,8 +12,12 @@ import java.util.concurrent.atomic.AtomicInteger
 @Service
 class BusinessMetricsService(
     private val meterRegistry: MeterRegistry,
-) {
+) : BusinessMetricsPort {
     private val recommendationRequests: Counter = meterRegistry.counter("business_recommendation_requests_total")
+    private val filmsCreated: Counter = meterRegistry.counter("business_films_created_total")
+    private val filmsEdited: Counter = meterRegistry.counter("business_films_edited_total")
+    private val filmsDeleted: Counter = meterRegistry.counter("business_films_deleted_total")
+    private val filmsBlocked: Counter = meterRegistry.counter("business_films_blocked_total")
     private val ratingsSubmitted: Counter = meterRegistry.counter("business_ratings_submitted_total")
     private val libraryEvents: Counter = meterRegistry.counter("business_library_events_total")
     private val jellyfinSyncRuns: Counter = meterRegistry.counter("business_jellyfin_sync_runs_total")
@@ -33,11 +38,27 @@ class BusinessMetricsService(
 
     private val backendWriteFailures: Counter = meterRegistry.counter("business_jellyfin_backend_write_failures_total")
 
-    fun recordRecommendationRequest() {
+    override fun recordFilmCreated() {
+        filmsCreated.increment()
+    }
+
+    override fun recordFilmEdited() {
+        filmsEdited.increment()
+    }
+
+    override fun recordFilmDeleted() {
+        filmsDeleted.increment()
+    }
+
+    override fun recordFilmBlocked() {
+        filmsBlocked.increment()
+    }
+
+    override fun recordRecommendationRequest() {
         recommendationRequests.increment()
     }
 
-    fun recordRecommendationWeightsUpdated(eventType: RecommendationEventType) {
+    override fun recordRecommendationWeightsUpdated(eventType: RecommendationEventType) {
         Counter
             .builder("recommendation_weights_updated_total")
             .tag("eventType", eventType.name)
@@ -45,15 +66,15 @@ class BusinessMetricsService(
             .increment()
     }
 
-    fun recordRatingSubmitted() {
+    override fun recordRatingSubmitted() {
         ratingsSubmitted.increment()
     }
 
-    fun recordLibraryEvent() {
+    override fun recordLibraryEvent() {
         libraryEvents.increment()
     }
 
-    fun recordJellyfinSync(summary: JellyfinSyncSummary) {
+    override fun recordJellyfinSync(summary: JellyfinSyncSummary) {
         jellyfinSyncRuns.increment()
         jellyfinSyncedUsers.increment(summary.syncedUsers.toDouble())
         jellyfinSkippedUsers.increment(summary.skippedUsers.toDouble())
@@ -61,15 +82,15 @@ class BusinessMetricsService(
         jellyfinSyncDuration.record(summary.durationMs, java.util.concurrent.TimeUnit.MILLISECONDS)
     }
 
-    fun recordJellyfinSyncFailure() {
+    override fun recordJellyfinSyncFailure() {
         jellyfinSyncFailures.increment()
     }
 
-    fun recordJellyfinUnmappedUser() {
+    override fun recordJellyfinUnmappedUser() {
         jellyfinUnmappedUsersGaugeValue.incrementAndGet()
     }
 
-    fun recordBackendWriteFailure() {
+    override fun recordBackendWriteFailure() {
         backendWriteFailures.increment()
     }
 }

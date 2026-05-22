@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 data class JellyfinIntegrationProperties(
     val enabled: Boolean = false,
     val baseUrl: String = "",
-    val webUrl: String = "",
+    val webUrl: String = baseUrl,
     val apiKey: String = "",
     val syncIntervalMs: Long = 1_800_000,
     val requestTimeoutMs: Long = 20_000,

@@ -2,13 +2,13 @@ package com.project.movienight.application.services
 
 import com.project.movienight.application.ports.input.CreateFilmCommand
 import com.project.movienight.application.ports.input.EditFilmCommand
+import com.project.movienight.application.ports.output.BusinessMetricsPort
 import com.project.movienight.application.ports.output.FilmRepositoryPort
 import com.project.movienight.application.ports.output.IdGenerator
 import com.project.movienight.config.FilmServiceProperties
 import com.project.movienight.domain.exception.BlockedValueException
 import com.project.movienight.domain.exception.EntityNotFoundException
 import com.project.movienight.domain.model.Film
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import io.mockk.every
 import io.mockk.justRun
 import io.mockk.mockk
@@ -24,7 +24,7 @@ class FilmServiceTest {
     private lateinit var filmRepository: FilmRepositoryPort
     private lateinit var idGenerator: IdGenerator
     private lateinit var filmConfig: FilmServiceProperties
-    private lateinit var meterRegistry: SimpleMeterRegistry
+    private lateinit var businessMetricsService: BusinessMetricsPort
     private lateinit var filmService: FilmService
 
     @BeforeEach
@@ -32,8 +32,8 @@ class FilmServiceTest {
         filmRepository = mockk()
         idGenerator = mockk()
         filmConfig = mockk()
-        meterRegistry = SimpleMeterRegistry()
-        filmService = FilmService(filmRepository, idGenerator, filmConfig, meterRegistry)
+        businessMetricsService = mockk(relaxed = true)
+        filmService = FilmService(filmRepository, idGenerator, filmConfig, businessMetricsService)
     }
 
     @Test

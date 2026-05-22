@@ -20,7 +20,6 @@ fun UserEntity.toDomain(): User =
         id = id,
         name = name,
         email = email,
-        library = null,
         preferences = null,
         jellyfinUserId = jellyfinUserId,
     )

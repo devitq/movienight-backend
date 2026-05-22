@@ -4,8 +4,10 @@ import com.project.movienight.domain.model.ContentType
 import com.project.movienight.domain.model.UserPreferences
 import java.util.UUID
 
-interface UpsertUserPreferencesUseCase {
+interface UserPreferencesUseCase {
     fun upsert(command: UpsertUserPreferencesCommand): UserPreferences
+
+    fun get(userId: UUID): UserPreferences?
 }
 
 data class UpsertUserPreferencesCommand(
@@ -17,7 +19,3 @@ data class UpsertUserPreferencesCommand(
     val moods: List<String> = emptyList(),
     val contentTypes: List<ContentType> = emptyList(),
 )
-
-interface GetUserPreferencesUseCase {
-    fun get(userId: UUID): UserPreferences?
-}

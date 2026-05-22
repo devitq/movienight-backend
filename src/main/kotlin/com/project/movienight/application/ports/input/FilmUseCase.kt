@@ -4,8 +4,21 @@ import com.project.movienight.domain.model.ContentType
 import com.project.movienight.domain.model.Film
 import java.util.UUID
 
-interface CreateFilmUseCase {
+interface FilmUseCase {
     fun create(command: CreateFilmCommand): Film
+
+    fun edit(
+        id: UUID,
+        command: EditFilmCommand,
+    ): Film
+
+    fun delete(id: UUID)
+
+    fun getById(id: UUID): Film
+
+    fun getAll(): List<Film>
+
+    fun searchByTitle(title: String): Film?
 }
 
 data class CreateFilmCommand(
@@ -23,13 +36,6 @@ data class CreateFilmCommand(
     val jellyfinLibraryId: String? = null,
 )
 
-interface EditFilmUseCase {
-    fun edit(
-        id: UUID,
-        command: EditFilmCommand,
-    ): Film
-}
-
 data class EditFilmCommand(
     val title: String,
     val description: String,
@@ -44,19 +50,3 @@ data class EditFilmCommand(
     val jellyfinItemId: String? = null,
     val jellyfinLibraryId: String? = null,
 )
-
-interface DeleteFilmUseCase {
-    fun delete(id: UUID)
-}
-
-interface GetFilmByIdUseCase {
-    fun getById(id: UUID): Film
-}
-
-interface GetAllFilmsUseCase {
-    fun getAll(): List<Film>
-}
-
-interface SearchFilmByTitleUseCase {
-    fun searchByTitle(title: String): Film?
-}

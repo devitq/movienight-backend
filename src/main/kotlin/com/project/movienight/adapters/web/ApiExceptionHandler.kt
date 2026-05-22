@@ -6,9 +6,12 @@ import com.project.movienight.domain.exception.EntityNotFoundException
 import org.slf4j.LoggerFactory
 import org.slf4j.MDC
 import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.server.ResponseStatusException
 
 @RestControllerAdvice
 class ApiExceptionHandler {
@@ -48,6 +51,44 @@ class ApiExceptionHandler {
             message = exception.message ?: "Domain error",
             traceId = traceId,
         )
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException::class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    fun handleValidationException(exception: MethodArgumentNotValidException): ErrorResponse {
+        val traceId = currentTraceId()
+        val details =
+            exception
+                .bindingResult
+                .fieldErrors
+                .joinToString("; ") { error -> "${error.field}: ${error.defaultMessage}" }
+                .ifBlank { "Invalid request" }
+        log.warn("Validation error: traceId='{}', message='{}'", traceId, details)
+
+        return ErrorResponse(
+            message = details,
+            traceId = traceId,
+        )
+    }
+
+    @ExceptionHandler(ResponseStatusException::class)
+    fun handleResponseStatusException(exception: ResponseStatusException): ResponseEntity<ErrorResponse> {
+        val traceId = currentTraceId()
+        log.warn(
+            "HTTP error: traceId='{}', status='{}', message='{}'",
+            traceId,
+            exception.statusCode,
+            exception.reason,
+        )
+
+        return ResponseEntity
+            .status(exception.statusCode)
+            .body(
+                ErrorResponse(
+                    message = exception.reason ?: exception.message,
+                    traceId = traceId,
+                ),
+            )
     }
 
     @ExceptionHandler(Exception::class)

@@ -3,7 +3,7 @@ package com.project.movienight.application.services
 import com.project.movienight.application.ports.input.CompleteRecommendationOnboardingCommand
 import com.project.movienight.application.ports.input.CompleteRecommendationOnboardingUseCase
 import com.project.movienight.application.ports.input.RecommendationOnboardingResult
-import com.project.movienight.application.ports.output.FilmLibraryRepositoryPort
+import com.project.movienight.application.ports.output.FilmLibraryEntryRepositoryPort
 import com.project.movienight.application.ports.output.FilmRatingRepositoryPort
 import com.project.movienight.application.ports.output.FilmRepositoryPort
 import com.project.movienight.application.ports.output.IdGenerator
@@ -11,7 +11,7 @@ import com.project.movienight.application.ports.output.UserPreferencesRepository
 import com.project.movienight.application.ports.output.UserRecommendationWeightsRepositoryPort
 import com.project.movienight.application.ports.output.UserRepositoryPort
 import com.project.movienight.domain.exception.EntityNotFoundException
-import com.project.movienight.domain.model.FilmLibrary
+import com.project.movienight.domain.model.FilmLibraryEntry
 import com.project.movienight.domain.model.FilmRating
 import com.project.movienight.domain.model.UserPreferences
 import com.project.movienight.domain.model.UserRecommendationWeights
@@ -25,7 +25,7 @@ class RecommendationOnboardingService(
     private val filmRepository: FilmRepositoryPort,
     private val userPreferencesRepository: UserPreferencesRepositoryPort,
     private val filmRatingRepository: FilmRatingRepositoryPort,
-    private val filmLibraryRepository: FilmLibraryRepositoryPort,
+    private val filmLibraryEntryRepository: FilmLibraryEntryRepositoryPort,
     private val userRecommendationWeightsRepository: UserRecommendationWeightsRepositoryPort,
     private val idGenerator: IdGenerator,
 ) : CompleteRecommendationOnboardingUseCase {
@@ -125,12 +125,12 @@ class RecommendationOnboardingService(
         userId: UUID,
         filmId: UUID,
         isViewed: Boolean,
-    ): FilmLibrary {
+    ): FilmLibraryEntry {
         val watchedAt = LocalDateTime.now().takeIf { isViewed }
-        val existing = filmLibraryRepository.findByUserIdAndFilmId(userId, filmId)
-        return filmLibraryRepository.save(
+        val existing = filmLibraryEntryRepository.findByUserIdAndFilmId(userId, filmId)
+        return filmLibraryEntryRepository.save(
             existing?.copy(isViewed = isViewed, watchedAt = watchedAt)
-                ?: FilmLibrary(
+                ?: FilmLibraryEntry(
                     id = idGenerator.generateId(),
                     userId = userId,
                     filmId = filmId,

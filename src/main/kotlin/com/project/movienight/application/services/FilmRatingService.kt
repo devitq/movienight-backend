@@ -1,9 +1,8 @@
 package com.project.movienight.application.services
 
-import com.project.movienight.adapters.metrics.BusinessMetricsService
-import com.project.movienight.application.ports.input.GetFilmRatingsUseCase
+import com.project.movienight.application.ports.input.FilmRatingUseCase
 import com.project.movienight.application.ports.input.RateFilmCommand
-import com.project.movienight.application.ports.input.RateFilmUseCase
+import com.project.movienight.application.ports.output.BusinessMetricsPort
 import com.project.movienight.application.ports.output.FilmRatingRepositoryPort
 import com.project.movienight.application.ports.output.FilmRepositoryPort
 import com.project.movienight.application.ports.output.IdGenerator
@@ -19,9 +18,8 @@ class FilmRatingService(
     private val filmRepository: FilmRepositoryPort,
     private val filmRatingRepository: FilmRatingRepositoryPort,
     private val idGenerator: IdGenerator,
-    private val businessMetricsService: BusinessMetricsService,
-) : RateFilmUseCase,
-    GetFilmRatingsUseCase {
+    private val businessMetricsService: BusinessMetricsPort,
+) : FilmRatingUseCase {
     override fun rate(command: RateFilmCommand): FilmRating {
         if (command.score !in 1..10) {
             throw DomainException("Film rating score must be between 1 and 10")

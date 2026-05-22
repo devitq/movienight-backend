@@ -1,6 +1,6 @@
 package com.project.movienight.adapters.web
 
-import com.project.movienight.application.services.JellyfinSyncService
+import com.project.movienight.application.ports.input.JellyfinSyncUseCase
 import com.project.movienight.domain.model.JellyfinSyncState
 import com.project.movienight.domain.model.JellyfinSyncSummary
 import org.springframework.web.bind.annotation.GetMapping
@@ -11,11 +11,11 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/api/integrations/jellyfin")
 class JellyfinSyncController(
-    private val jellyfinSyncService: JellyfinSyncService,
+    private val jellyfinSyncUseCase: JellyfinSyncUseCase,
 ) {
     @PostMapping("/sync")
-    fun syncNow(): JellyfinSyncSummary = jellyfinSyncService.syncNow()
+    fun syncNow(): JellyfinSyncSummary = jellyfinSyncUseCase.syncNow()
 
     @GetMapping("/sync-state")
-    fun syncState(): List<JellyfinSyncState> = jellyfinSyncService.getSyncStates()
+    fun syncState(): List<JellyfinSyncState> = jellyfinSyncUseCase.getSyncStates()
 }

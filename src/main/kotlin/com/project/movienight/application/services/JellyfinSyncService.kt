@@ -1,18 +1,17 @@
 package com.project.movienight.application.services
 
-import com.project.movienight.adapters.jellyfin.JellyfinApiClient
-import com.project.movienight.adapters.jellyfin.JellyfinLibraryItemSnapshot
-import com.project.movienight.adapters.jellyfin.JellyfinRemoteUser
-import com.project.movienight.adapters.metrics.BusinessMetricsService
-import com.project.movienight.application.ports.output.FilmLibraryRepositoryPort
+import com.project.movienight.application.ports.input.JellyfinSyncUseCase
+import com.project.movienight.application.ports.output.BusinessMetricsPort
+import com.project.movienight.application.ports.output.FilmLibraryEntryRepositoryPort
 import com.project.movienight.application.ports.output.FilmRepositoryPort
 import com.project.movienight.application.ports.output.IdGenerator
+import com.project.movienight.application.ports.output.JellyfinCatalogPort
+import com.project.movienight.application.ports.output.JellyfinLibraryItemSnapshot
 import com.project.movienight.application.ports.output.JellyfinSyncStateRepositoryPort
 import com.project.movienight.application.ports.output.UserRepositoryPort
 import com.project.movienight.config.JellyfinIntegrationProperties
-import com.project.movienight.domain.model.ContentType
 import com.project.movienight.domain.model.Film
-import com.project.movienight.domain.model.FilmLibrary
+import com.project.movienight.domain.model.FilmLibraryEntry
 import com.project.movienight.domain.model.JellyfinSyncState
 import com.project.movienight.domain.model.JellyfinSyncSummary
 import org.springframework.scheduling.annotation.Scheduled
@@ -20,18 +19,19 @@ import org.springframework.stereotype.Service
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDateTime
+import java.util.UUID
 
 @Service
 class JellyfinSyncService(
     private val properties: JellyfinIntegrationProperties,
-    private val jellyfinApiClient: JellyfinApiClient,
+    private val jellyfinCatalog: JellyfinCatalogPort,
     private val userRepository: UserRepositoryPort,
     private val filmRepository: FilmRepositoryPort,
-    private val filmLibraryRepository: FilmLibraryRepositoryPort,
+    private val filmLibraryEntryRepository: FilmLibraryEntryRepositoryPort,
     private val syncStateRepository: JellyfinSyncStateRepositoryPort,
     private val idGenerator: IdGenerator,
-    private val businessMetricsService: BusinessMetricsService,
-) {
+    private val businessMetricsService: BusinessMetricsPort,
+) : JellyfinSyncUseCase {
     @Scheduled(fixedDelayString = "\${integrations.jellyfin.sync-interval-ms:1800000}")
     fun scheduledSync() {
         if (properties.enabled) {
@@ -39,13 +39,26 @@ class JellyfinSyncService(
         }
     }
 
-    fun syncNow(): JellyfinSyncSummary {
+    override fun syncNow(): JellyfinSyncSummary {
         if (!properties.enabled || properties.baseUrl.isBlank() || properties.apiKey.isBlank()) {
             return JellyfinSyncSummary(syncedUsers = 0, skippedUsers = 0, syncedItems = 0, durationMs = 0)
         }
 
+        return try {
+            runSync()
+        } catch (
+            @Suppress("TooGenericExceptionCaught") ex: RuntimeException,
+        ) {
+            businessMetricsService.recordJellyfinSyncFailure()
+            throw ex
+        }
+    }
+
+    override fun getSyncStates(): List<JellyfinSyncState> = syncStateRepository.findAll()
+
+    private fun runSync(): JellyfinSyncSummary {
         val startedAt = Instant.now()
-        val remoteUsers = jellyfinApiClient.fetchUsers()
+        val remoteUsers = jellyfinCatalog.fetchUsers()
         val localUsersByJellyfinId =
             userRepository
                 .findAll()
@@ -64,7 +77,7 @@ class JellyfinSyncService(
                 return@forEach
             }
 
-            val items = jellyfinApiClient.fetchLibraryItems(remoteUser.id)
+            val items = jellyfinCatalog.fetchLibraryItems(remoteUser.id)
             items.forEach { item ->
                 syncItem(localUser.id, item)
                 syncedItems += 1
@@ -94,12 +107,22 @@ class JellyfinSyncService(
         return summary
     }
 
-    fun getSyncStates(): List<JellyfinSyncState> = syncStateRepository.findAll()
-
     private fun syncItem(
-        userId: java.util.UUID,
+        userId: UUID,
         item: JellyfinLibraryItemSnapshot,
     ) {
+        val savedFilm = upsertFilm(item)
+
+        if (item.isPlayed) {
+            markFilmViewed(
+                userId = userId,
+                filmId = savedFilm.id,
+                watchedAt = LocalDateTime.now(),
+            )
+        }
+    }
+
+    private fun upsertFilm(item: JellyfinLibraryItemSnapshot): Film {
         val film =
             filmRepository.findByJellyfinItemId(item.jellyfinItemId)?.copy(
                 title = item.title,
@@ -130,24 +153,27 @@ class JellyfinSyncService(
                 jellyfinLibraryId = item.jellyfinLibraryId,
             )
 
-        val savedFilm = filmRepository.save(film)
+        return filmRepository.save(film)
+    }
 
-        if (item.isPlayed) {
-            val watchedAt = LocalDateTime.now()
-            val existingEntry = filmLibraryRepository.findByUserIdAndFilmId(userId, savedFilm.id)
-            filmLibraryRepository.save(
-                existingEntry?.copy(
-                    isViewed = true,
-                    watchedAt = watchedAt,
-                ) ?: FilmLibrary(
-                    id = idGenerator.generateId(),
-                    userId = userId,
-                    filmId = savedFilm.id,
-                    comment = null,
-                    isViewed = true,
-                    watchedAt = watchedAt,
-                ),
-            )
-        }
+    private fun markFilmViewed(
+        userId: UUID,
+        filmId: UUID,
+        watchedAt: LocalDateTime,
+    ) {
+        val existingEntry = filmLibraryEntryRepository.findByUserIdAndFilmId(userId, filmId)
+        filmLibraryEntryRepository.save(
+            existingEntry?.copy(
+                isViewed = true,
+                watchedAt = watchedAt,
+            ) ?: FilmLibraryEntry(
+                id = idGenerator.generateId(),
+                userId = userId,
+                filmId = filmId,
+                comment = null,
+                isViewed = true,
+                watchedAt = watchedAt,
+            ),
+        )
     }
 }

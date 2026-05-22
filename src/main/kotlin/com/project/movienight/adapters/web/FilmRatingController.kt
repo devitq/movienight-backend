@@ -2,9 +2,9 @@ package com.project.movienight.adapters.web
 
 import com.project.movienight.adapters.web.dto.request.RateFilmRequest
 import com.project.movienight.adapters.web.dto.response.FilmRatingResponse
-import com.project.movienight.application.ports.input.GetFilmRatingsUseCase
+import com.project.movienight.application.ports.input.FilmRatingUseCase
 import com.project.movienight.application.ports.input.RateFilmCommand
-import com.project.movienight.application.ports.input.RateFilmUseCase
+import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -18,18 +18,17 @@ import java.util.UUID
 @RestController
 @RequestMapping("/api/users/{userId}/ratings")
 class FilmRatingController(
-    private val rateFilmUseCase: RateFilmUseCase,
-    private val getFilmRatingsUseCase: GetFilmRatingsUseCase,
+    private val filmRatingUseCase: FilmRatingUseCase,
 ) {
     @PostMapping("/films/{filmId}")
     @ResponseStatus(HttpStatus.CREATED)
     fun rate(
         @PathVariable userId: UUID,
         @PathVariable filmId: UUID,
-        @RequestBody request: RateFilmRequest,
+        @Valid @RequestBody request: RateFilmRequest,
     ): FilmRatingResponse =
         FilmRatingResponse.fromDomain(
-            rateFilmUseCase.rate(
+            filmRatingUseCase.rate(
                 RateFilmCommand(
                     userId = userId,
                     filmId = filmId,
@@ -42,5 +41,5 @@ class FilmRatingController(
     @GetMapping
     fun list(
         @PathVariable userId: UUID,
-    ): List<FilmRatingResponse> = getFilmRatingsUseCase.getRatings(userId).map { FilmRatingResponse.fromDomain(it) }
+    ): List<FilmRatingResponse> = filmRatingUseCase.getRatings(userId).map { FilmRatingResponse.fromDomain(it) }
 }

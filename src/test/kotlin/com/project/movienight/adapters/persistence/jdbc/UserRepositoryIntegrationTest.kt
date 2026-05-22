@@ -1,5 +1,6 @@
 package com.project.movienight.adapters.persistence.jdbc
 
+import com.project.movienight.domain.model.AuthProvider
 import com.project.movienight.domain.model.User
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -46,7 +47,6 @@ class UserRepositoryIntegrationTest {
                 id = UUID.randomUUID(),
                 name = "John Doe",
                 email = "john@example.com",
-                library = null,
             )
 
         val savedUser = userRepository.save(user)
@@ -61,10 +61,10 @@ class UserRepositoryIntegrationTest {
     fun `should update existing user`() {
         // given
         val userId = UUID.randomUUID()
-        val originalUser = User(userId, "John Doe", "john@example.com", null)
+        val originalUser = User(userId, "John Doe", "john@example.com")
         userRepository.save(originalUser)
 
-        val updatedUser = User(userId, "Jane Doe", "jane@example.com", null)
+        val updatedUser = User(userId, "Jane Doe", "jane@example.com")
         val result = userRepository.save(updatedUser)
 
         assertEquals(userId, result.id)
@@ -80,7 +80,7 @@ class UserRepositoryIntegrationTest {
     @Test
     fun `should find user by id`() {
         // given
-        val user = User(UUID.randomUUID(), "John Doe", "john@example.com", null)
+        val user = User(UUID.randomUUID(), "John Doe", "john@example.com")
         userRepository.save(user)
 
         // when
@@ -108,9 +108,9 @@ class UserRepositoryIntegrationTest {
     @Test
     fun `should find all users`() {
         // given
-        val user1 = User(UUID.randomUUID(), "John Doe", "john@example.com", null)
-        val user2 = User(UUID.randomUUID(), "Jane Smith", "jane@example.com", null)
-        val user3 = User(UUID.randomUUID(), "Bob Johnson", "bob@example.com", null)
+        val user1 = User(UUID.randomUUID(), "John Doe", "john@example.com")
+        val user2 = User(UUID.randomUUID(), "Jane Smith", "jane@example.com")
+        val user3 = User(UUID.randomUUID(), "Bob Johnson", "bob@example.com")
 
         userRepository.save(user1)
         userRepository.save(user2)
@@ -138,7 +138,7 @@ class UserRepositoryIntegrationTest {
     @Test
     fun `should delete user by id`() {
         // given
-        val user = User(UUID.randomUUID(), "John Doe", "john@example.com", null)
+        val user = User(UUID.randomUUID(), "John Doe", "john@example.com")
         userRepository.save(user)
 
         // when
@@ -156,5 +156,42 @@ class UserRepositoryIntegrationTest {
 
         // when & then (no exception should be thrown)
         userRepository.deleteById(nonExistentId)
+    }
+
+    @Test
+    fun `should create OAuth user with provider identity`() {
+        val user = User(UUID.randomUUID(), "OAuth User", "oauth@example.com")
+
+        val savedUser = userRepository.createOAuthUser(user, AuthProvider.GOOGLE, "google-123")
+
+        assertEquals(user.id, savedUser.id)
+        assertEquals(user.email, savedUser.email)
+
+        val foundByProvider = userRepository.findByProviderAndProviderId(AuthProvider.GOOGLE, "google-123")
+        assertNotNull(foundByProvider)
+        assertEquals(user.id, foundByProvider?.id)
+    }
+
+    @Test
+    fun `should link OAuth account to existing user`() {
+        val user = userRepository.save(User(UUID.randomUUID(), "Link User", "link@example.com"))
+
+        val linkedUser = userRepository.linkOAuthAccount(user.id, AuthProvider.YANDEX, "yandex-456")
+
+        assertEquals(user.id, linkedUser.id)
+        val foundByProvider = userRepository.findByProviderAndProviderId(AuthProvider.YANDEX, "yandex-456")
+        assertNotNull(foundByProvider)
+        assertEquals(user.id, foundByProvider?.id)
+    }
+
+    @Test
+    fun `find by email should include jellyfin user id`() {
+        val user = userRepository.save(User(UUID.randomUUID(), "Jellyfin User", "jellyfin@example.com"))
+        jdbcTemplate.update("UPDATE users SET jellyfin_user_id = ? WHERE id = ?", "jellyfin-789", user.id)
+
+        val foundUser = userRepository.findByEmail(user.email)
+
+        assertNotNull(foundUser)
+        assertEquals("jellyfin-789", foundUser?.jellyfinUserId)
     }
 }

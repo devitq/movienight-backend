@@ -3,8 +3,10 @@ package com.project.movienight.application.ports.input
 import com.project.movienight.domain.model.FilmRating
 import java.util.UUID
 
-interface RateFilmUseCase {
+interface FilmRatingUseCase {
     fun rate(command: RateFilmCommand): FilmRating
+
+    fun getRatings(userId: UUID): List<FilmRating>
 }
 
 data class RateFilmCommand(
@@ -13,7 +15,3 @@ data class RateFilmCommand(
     val score: Int,
     val note: String? = null,
 )
-
-interface GetFilmRatingsUseCase {
-    fun getRatings(userId: UUID): List<FilmRating>
-}

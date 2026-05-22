@@ -42,7 +42,7 @@ jobs:
       contents: read
       packages: write
     with:
-      push: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') }}
+      push: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') || github.event.pull_request.base.ref == 'main' }}
     secrets: inherit
 
   notify-main:

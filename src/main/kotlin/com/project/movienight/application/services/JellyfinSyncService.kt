@@ -1,5 +1,6 @@
 package com.project.movienight.application.services
 
+import com.project.movienight.application.ports.input.IngestJellyfinSyncCommand
 import com.project.movienight.application.ports.input.JellyfinSyncUseCase
 import com.project.movienight.application.ports.output.BusinessMetricsPort
 import com.project.movienight.application.ports.output.FilmLibraryEntryRepositoryPort
@@ -10,15 +11,18 @@ import com.project.movienight.application.ports.output.JellyfinLibraryItemSnapsh
 import com.project.movienight.application.ports.output.JellyfinSyncStateRepositoryPort
 import com.project.movienight.application.ports.output.UserRepositoryPort
 import com.project.movienight.config.JellyfinIntegrationProperties
+import com.project.movienight.domain.model.ContentType
 import com.project.movienight.domain.model.Film
 import com.project.movienight.domain.model.FilmLibraryEntry
 import com.project.movienight.domain.model.JellyfinSyncState
 import com.project.movienight.domain.model.JellyfinSyncSummary
+import com.project.movienight.domain.model.User
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDateTime
+import java.util.Locale
 import java.util.UUID
 
 @Service
@@ -56,6 +60,21 @@ class JellyfinSyncService(
 
     override fun getSyncStates(): List<JellyfinSyncState> = syncStateRepository.findAll()
 
+    override fun ingest(command: IngestJellyfinSyncCommand): JellyfinSyncSummary {
+        if (!properties.enabled) {
+            return JellyfinSyncSummary(syncedUsers = 0, skippedUsers = 0, syncedItems = 0, durationMs = 0)
+        }
+
+        return try {
+            ingestPluginSync(command)
+        } catch (
+            @Suppress("TooGenericExceptionCaught") ex: RuntimeException,
+        ) {
+            businessMetricsService.recordJellyfinSyncFailure()
+            throw ex
+        }
+    }
+
     private fun runSync(): JellyfinSyncSummary {
         val startedAt = Instant.now()
         val remoteUsers = jellyfinCatalog.fetchUsers()
@@ -63,7 +82,7 @@ class JellyfinSyncService(
             userRepository
                 .findAll()
                 .mapNotNull { user ->
-                    user.jellyfinUserId?.let { it to user }
+                    user.jellyfinUserId?.let { normalizeJellyfinId(it) to user }
                 }.toMap()
 
         var syncedUsers = 0
@@ -71,7 +90,7 @@ class JellyfinSyncService(
         var syncedItems = 0
 
         remoteUsers.forEach { remoteUser ->
-            val localUser = localUsersByJellyfinId[remoteUser.id]
+            val localUser = localUsersByJellyfinId[normalizeJellyfinId(remoteUser.id)]
             if (localUser == null) {
                 skippedUsers += 1
                 return@forEach
@@ -123,34 +142,39 @@ class JellyfinSyncService(
     }
 
     private fun upsertFilm(item: JellyfinLibraryItemSnapshot): Film {
+        val normalizedItem =
+            item.copy(
+                jellyfinItemId = normalizeJellyfinId(item.jellyfinItemId),
+                jellyfinLibraryId = item.jellyfinLibraryId?.let(::normalizeJellyfinId),
+            )
         val film =
-            filmRepository.findByJellyfinItemId(item.jellyfinItemId)?.copy(
-                title = item.title,
-                description = item.description,
-                contentType = item.contentType,
-                releaseYear = item.releaseYear,
-                genres = item.genres,
-                cast = item.cast,
-                directors = item.directors,
-                imdbRating = item.imdbRating,
-                platformRating = item.platformRating,
-                externalUrl = item.externalUrl,
-                jellyfinItemId = item.jellyfinItemId,
-                jellyfinLibraryId = item.jellyfinLibraryId,
+            filmRepository.findByJellyfinItemId(normalizedItem.jellyfinItemId)?.copy(
+                title = normalizedItem.title,
+                description = normalizedItem.description,
+                contentType = normalizedItem.contentType,
+                releaseYear = normalizedItem.releaseYear,
+                genres = normalizedItem.genres,
+                cast = normalizedItem.cast,
+                directors = normalizedItem.directors,
+                imdbRating = normalizedItem.imdbRating,
+                platformRating = normalizedItem.platformRating,
+                externalUrl = normalizedItem.externalUrl,
+                jellyfinItemId = normalizedItem.jellyfinItemId,
+                jellyfinLibraryId = normalizedItem.jellyfinLibraryId,
             ) ?: Film(
                 id = idGenerator.generateId(),
-                title = item.title,
-                description = item.description,
-                contentType = item.contentType,
-                releaseYear = item.releaseYear,
-                genres = item.genres,
-                cast = item.cast,
-                directors = item.directors,
-                imdbRating = item.imdbRating,
-                platformRating = item.platformRating,
-                externalUrl = item.externalUrl,
-                jellyfinItemId = item.jellyfinItemId,
-                jellyfinLibraryId = item.jellyfinLibraryId,
+                title = normalizedItem.title,
+                description = normalizedItem.description,
+                contentType = normalizedItem.contentType,
+                releaseYear = normalizedItem.releaseYear,
+                genres = normalizedItem.genres,
+                cast = normalizedItem.cast,
+                directors = normalizedItem.directors,
+                imdbRating = normalizedItem.imdbRating,
+                platformRating = normalizedItem.platformRating,
+                externalUrl = normalizedItem.externalUrl,
+                jellyfinItemId = normalizedItem.jellyfinItemId,
+                jellyfinLibraryId = normalizedItem.jellyfinLibraryId,
             )
 
         return filmRepository.save(film)
@@ -176,4 +200,114 @@ class JellyfinSyncService(
             ),
         )
     }
+
+    private fun ingestPluginSync(command: IngestJellyfinSyncCommand): JellyfinSyncSummary {
+        val startedAt = Instant.now()
+        upsertPluginUsers(command)
+        val localUsersByJellyfinId =
+            userRepository
+                .findAll()
+                .mapNotNull { user -> user.jellyfinUserId?.let { normalizeJellyfinId(it) to user } }
+                .toMap()
+
+        val skippedUserIds = mutableSetOf<String>()
+        val syncedCountsByUserId = mutableMapOf<UUID, Int>()
+
+        command.items.forEach { item ->
+            val savedFilm =
+                upsertFilm(
+                    JellyfinLibraryItemSnapshot(
+                        jellyfinItemId = item.jellyfinItemId,
+                        title = item.title,
+                        description = item.description ?: item.originalTitle ?: "",
+                        contentType = ContentType.FILM,
+                        releaseYear = item.year,
+                        genres = item.genres,
+                        cast = emptyList(),
+                        directors = emptyList(),
+                        platformRating = null,
+                        imdbRating = null,
+                        externalUrl = item.imdbId?.let { "https://www.imdb.com/title/$it/" },
+                        jellyfinLibraryId = item.jellyfinLibraryId,
+                        isPlayed = false,
+                    ),
+                )
+
+            item.userStates.forEach { state ->
+                val stateUserId = normalizeJellyfinId(state.jellyfinUserId)
+                val localUser = localUsersByJellyfinId[stateUserId]
+                if (localUser == null) {
+                    skippedUserIds += stateUserId
+                    return@forEach
+                }
+
+                syncedCountsByUserId[localUser.id] = syncedCountsByUserId.getOrDefault(localUser.id, 0) + 1
+                if (state.isViewed || state.playCount > 0) {
+                    markFilmViewed(
+                        userId = localUser.id,
+                        filmId = savedFilm.id,
+                        watchedAt = state.lastPlayedAt?.toLocalDateTime() ?: LocalDateTime.now(),
+                    )
+                }
+            }
+        }
+
+        val now = LocalDateTime.now()
+        syncedCountsByUserId.forEach { (userId, itemCount) ->
+            syncStateRepository.save(
+                JellyfinSyncState(
+                    userId = userId,
+                    lastSyncedAt = now,
+                    lastSuccessfulSyncAt = now,
+                    lastError = null,
+                    syncedItemCount = itemCount,
+                ),
+            )
+        }
+
+        val summary =
+            JellyfinSyncSummary(
+                syncedUsers = syncedCountsByUserId.size,
+                skippedUsers = skippedUserIds.size,
+                syncedItems = command.items.size,
+                durationMs = Duration.between(startedAt, Instant.now()).toMillis(),
+            )
+        businessMetricsService.recordJellyfinSync(summary)
+        return summary
+    }
+
+    private fun upsertPluginUsers(command: IngestJellyfinSyncCommand) {
+        command.users.forEach { remoteUser ->
+            val jellyfinUserId =
+                remoteUser.jellyfinUserId
+                    .takeIf { it.isNotBlank() }
+                    ?.let(::normalizeJellyfinId)
+                    ?: return@forEach
+            if (userRepository.findByJellyfinUserId(jellyfinUserId) != null) {
+                return@forEach
+            }
+
+            userRepository.save(
+                User(
+                    id = idGenerator.generateId(),
+                    name = remoteUser.name?.takeIf { it.isNotBlank() } ?: "Jellyfin User",
+                    email = syntheticJellyfinEmail(jellyfinUserId),
+                    jellyfinUserId = jellyfinUserId,
+                ),
+            )
+        }
+    }
+
+    private fun syntheticJellyfinEmail(jellyfinUserId: String): String {
+        val safeId =
+            jellyfinUserId
+                .lowercase(Locale.getDefault())
+                .replace(Regex("[^a-z0-9._%+-]"), "-")
+                .take(240)
+        return "jellyfin-$safeId@movienight.local"
+    }
+
+    private fun normalizeJellyfinId(value: String): String =
+        runCatching { UUID.fromString(value).toString().replace("-", "") }
+            .getOrDefault(value)
 }

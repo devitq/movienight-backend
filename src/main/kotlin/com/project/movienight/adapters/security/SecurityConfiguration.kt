@@ -26,9 +26,7 @@ class SecurityConfiguration(
                     .requestMatchers("/api/v1/docs/**", "/api/v1/swagger-ui/**", "/swagger-ui/**")
                     .permitAll()
                     .requestMatchers(
-                        "/api/integrations/jellyfin/events",
-                        "/api/integrations/jellyfin/sync",
-                        "/api/integrations/jellyfin/sync-state",
+                        "/api/integrations/jellyfin/**",
                     ).permitAll()
                     .requestMatchers("/api/users/me")
                     .authenticated()

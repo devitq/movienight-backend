@@ -13,6 +13,7 @@ import com.project.movienight.config.UserServiceProperties
 import com.project.movienight.domain.exception.BlockedValueException
 import com.project.movienight.domain.exception.EntityNotFoundException
 import com.project.movienight.domain.model.User
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.util.UUID
 
@@ -26,8 +27,14 @@ class UserService(
     DeleteUserUseCase,
     GetUserByIdUseCase,
     GetAllUsersUseCase {
+    private val log = LoggerFactory.getLogger(javaClass)
+
     override fun create(command: CreateUserCommand): User {
+        log.info("Creating new user with email: {}", command.email)
+        log.debug("Create user request: name='{}', email='{}'", command.name, command.email)
+
         if (userConfig.isBlocked(command.name)) {
+            log.warn("User creation blocked: name contains blocked pattern '{}'", command.name)
             throw BlockedValueException(target = "User", field = "name")
         }
 
@@ -39,18 +46,29 @@ class UserService(
                 library = null,
                 jellyfinUserId = null,
             )
-        return userRepository.save(user)
+        val saved = userRepository.save(user)
+
+        log.info("User created successfully: id={}, email='{}'", saved.id, saved.email)
+        return saved
     }
 
     override fun edit(
         id: UUID,
         command: EditUserCommand,
     ): User {
+        log.info("Editing user: id={}", id)
+        log.debug("Edit user request: id={}, name='{}', jellyfinUserId={}", id, command.name, command.jellyfinUserId)
+
         if (userConfig.isBlocked(command.name)) {
+            log.warn("User edit blocked: name contains blocked pattern '{}'", command.name)
             throw BlockedValueException(target = "User", field = "name")
         }
 
-        var user = userRepository.findById(id) ?: throw EntityNotFoundException(entity = "User", id = id.toString())
+        var user =
+            userRepository.findById(id)
+                ?: throw EntityNotFoundException(entity = "User", id = id.toString())
+
+        log.debug("Existing user found: id={}, current name='{}'", user.id, user.name)
 
         user =
             user.copy(
@@ -58,16 +76,38 @@ class UserService(
                 jellyfinUserId = command.jellyfinUserId ?: user.jellyfinUserId,
             )
 
-        return userRepository.save(user)
+        val saved = userRepository.save(user)
+        log.info("User edited successfully: id={}, new name='{}'", saved.id, saved.name)
+        return saved
     }
 
     override fun delete(id: UUID) {
-        userRepository.findById(id) ?: throw EntityNotFoundException(entity = "User", id = id.toString())
+        log.info("Deleting user: id={}", id)
+        log.debug("Delete user request: id={}", id)
+
+        val user =
+            userRepository.findById(id)
+                ?: throw EntityNotFoundException(entity = "User", id = id.toString())
+
+        log.debug("User found for deletion: id={}, email='{}'", user.id, user.email)
+
         userRepository.deleteById(id)
+        log.info("User deleted successfully: id={}", id)
     }
 
-    override fun getById(id: UUID): User =
-        userRepository.findById(id) ?: throw EntityNotFoundException(entity = "User", id = id.toString())
+    override fun getById(id: UUID): User {
+        log.debug("Fetching user by id: {}", id)
+        val user =
+            userRepository.findById(id)
+                ?: throw EntityNotFoundException(entity = "User", id = id.toString())
+        log.debug("User found: id={}, name='{}', email='{}'", user.id, user.name, user.email)
+        return user
+    }
 
-    override fun getAll(): List<User> = userRepository.findAll()
+    override fun getAll(): List<User> {
+        log.debug("Fetching all users")
+        val users = userRepository.findAll()
+        log.info("Retrieved {} users from database", users.size)
+        return users
+    }
 }

@@ -1,26 +1,249 @@
 (function () {
+    if (typeof window.movieNightUiCleanup === 'function') {
+        window.movieNightUiCleanup();
+    }
+
     const PLUGIN_ID = "42c72919-d6ff-4f62-bb8c-0fac39efafdb";
+    const ROUTE_RETRY_DELAYS_MS = [0, 100, 300, 700, 1500, 3000];
 
     function getAlert() {
         if (typeof Dashboard !== 'undefined' && Dashboard.alert) {
-            return (options) => Dashboard.alert(options);
+            return (options) => Dashboard.alert(formatAlertMessage(options));
         }
         return (options) => {
-            const msg = typeof options === 'string' ? options : (options.text || options.title);
-            alert(msg);
+            alert(formatAlertMessage(options));
         };
     }
 
     const showMsg = getAlert();
 
-    function createTextButton(text, className, onClick) {
+    function formatAlertMessage(options) {
+        if (typeof options === 'string') return options;
+        if (!options) return '';
+        return [options.title, options.text || options.message].filter(Boolean).join('\n\n');
+    }
+
+    function ensureMovieNightStyles() {
+        if (document.getElementById('movieNightUiStyles')) return;
+
+        const style = document.createElement('style');
+        style.id = 'movieNightUiStyles';
+        style.textContent = `
+            .movieNightActionButton {
+                align-items: center;
+                border: var(--defaultLighterBorder, 1px solid rgba(255,255,255,.16));
+                border-radius: var(--smallRadius, 8px);
+                display: inline-flex;
+                gap: .55em;
+                min-height: 2.65em;
+                padding: .55em .9em;
+                transition: background-color .16s ease, border-color .16s ease, color .16s ease;
+            }
+            .movieNightActionButton:hover,
+            .movieNightActionButton:focus {
+                border-color: var(--dimTextColor, rgba(255,255,255,.45));
+                color: #fff;
+            }
+            .movieNightActionButton .material-icons {
+                font-size: 1.35em;
+            }
+            .movieNightDetailButton {
+                color: var(--textColor, #fff);
+            }
+            .movieNightDetailButton .detailButton-content {
+                border-radius: 999px;
+                outline: 1px solid rgba(255,255,255,.16);
+                outline-offset: -1px;
+            }
+            .movieNightDetailButton:focus .detailButton-content,
+            .movieNightDetailButton:hover .detailButton-content {
+                background: rgba(255,255,255,.18);
+            }
+            .movieNightHomeButtons {
+                margin-bottom: 1.25em;
+            }
+            .movieNightPanel {
+                background: color-mix(in srgb, var(--headerColor, #202020) 78%, transparent);
+                border: var(--defaultBorder, 1px solid rgba(255,255,255,.12));
+                border-radius: var(--smallRadius, 8px);
+                box-sizing: border-box;
+                padding: 1em;
+            }
+            .movieNightPanelHeader {
+                align-items: center;
+                display: flex;
+                gap: 1em;
+                justify-content: space-between;
+                margin-bottom: .75em;
+            }
+            .movieNightPanelHeader .sectionTitle {
+                margin: 0;
+            }
+            .movieNightSyncStatus {
+                color: var(--dimTextColor, rgba(255,255,255,.65));
+                font-size: .86em;
+                text-align: right;
+            }
+            .movieNightBtnContainer {
+                display: flex;
+                flex-wrap: wrap;
+                gap: .65em;
+            }
+            .movieNightDialog {
+                background: color-mix(in srgb, var(--drawerColor, #1f1f1f) 92%, transparent) !important;
+                border: var(--defaultBorder, 1px solid rgba(255,255,255,.15)) !important;
+                border-radius: var(--smallRadius, 8px) !important;
+                box-shadow: var(--shadow, 0 18px 55px rgba(0,0,0,.55)) !important;
+                box-sizing: border-box;
+                color: var(--textColor, #fff) !important;
+                max-width: calc(100vw - 2em);
+            }
+            .movieNightDialogTitle {
+                align-items: center;
+                display: flex;
+                gap: .55em;
+                margin: 0;
+                font-size: 1.35em;
+                font-weight: 500;
+            }
+            .movieNightDialogTitle .material-icons {
+                color: var(--uiAccentColor, #00a4dc);
+                font-size: 1.25em;
+            }
+            .movieNightDialog .dialog-content {
+                color: var(--textColor, #fff);
+            }
+            .movieNightDialog .dialog-footer {
+                justify-content: flex-end;
+            }
+            .movieNightRecommendationList {
+                display: grid;
+                gap: .8em;
+            }
+            .movieNightRecommendation {
+                background: rgba(255,255,255,.055);
+                border: var(--defaultLighterBorder, 1px solid rgba(255,255,255,.14));
+                border-radius: var(--smallRadius, 8px);
+                display: grid;
+                gap: .9em;
+                grid-template-columns: 76px minmax(0, 1fr);
+                padding: .75em;
+            }
+            .movieNightRecommendationPoster {
+                align-self: start;
+                aspect-ratio: 2 / 3;
+                background: rgba(255,255,255,.08);
+                border-radius: var(--smallerRadius, 6px);
+                object-fit: cover;
+                overflow: hidden;
+                width: 76px;
+            }
+            .movieNightRecommendationBody {
+                min-width: 0;
+            }
+            .movieNightRecommendationHeader {
+                align-items: start;
+                display: flex;
+                gap: 1em;
+                justify-content: space-between;
+            }
+            .movieNightRecommendationTitle {
+                color: #fff;
+                font-size: 1.08em;
+                font-weight: 600;
+                line-height: 1.25;
+                overflow-wrap: anywhere;
+            }
+            .movieNightRecommendationMeta,
+            .movieNightRecommendationReason {
+                color: var(--dimTextColor, rgba(255,255,255,.68));
+                font-size: .9em;
+                margin-top: .25em;
+            }
+            .movieNightRecommendationScore {
+                background: rgba(255,255,255,.1);
+                border-radius: 999px;
+                color: #fff;
+                flex: 0 0 auto;
+                font-size: .82em;
+                padding: .28em .65em;
+                white-space: nowrap;
+            }
+            .movieNightRecommendationDescription {
+                color: rgba(255,255,255,.84);
+                display: -webkit-box;
+                line-height: 1.35;
+                margin-top: .65em;
+                overflow: hidden;
+                -webkit-box-orient: vertical;
+                -webkit-line-clamp: 3;
+            }
+            .movieNightRecommendationActions {
+                display: flex;
+                flex-wrap: wrap;
+                gap: .5em;
+                margin-top: .75em;
+            }
+            .movieNightRecommendationActions .emby-button {
+                min-height: 2.35em;
+            }
+            .movieNightField {
+                margin-bottom: 1em;
+            }
+            .movieNightField label {
+                color: var(--dimTextColor, rgba(255,255,255,.72));
+                display: block;
+                font-size: .9em;
+                margin-bottom: .35em;
+            }
+            .movieNightFieldRow {
+                display: grid;
+                gap: 1em;
+                grid-template-columns: minmax(6em, .7fr) minmax(0, 1.3fr);
+            }
+            .movieNightDialog .emby-input {
+                box-sizing: border-box;
+                width: 100%;
+            }
+            @media (max-width: 42em) {
+                .movieNightRecommendation {
+                    grid-template-columns: 56px minmax(0, 1fr);
+                }
+                .movieNightRecommendationPoster {
+                    width: 56px;
+                }
+                .movieNightRecommendationHeader {
+                    display: block;
+                }
+                .movieNightRecommendationScore {
+                    display: inline-flex;
+                    margin-top: .45em;
+                }
+                .movieNightPanelHeader {
+                    align-items: flex-start;
+                    flex-direction: column;
+                    gap: .35em;
+                }
+                .movieNightSyncStatus {
+                    text-align: left;
+                }
+                .movieNightFieldRow {
+                    grid-template-columns: 1fr;
+                    gap: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    function createTextButton(text, className, onClick, icon) {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.is = 'emby-button';
-        btn.className = `emby-button raised ${className}`;
-        btn.style.margin = '0.5em';
-        btn.style.padding = '0.4em 1em';
-        btn.innerHTML = `<span>${text}</span>`;
+        btn.className = `emby-button raised movieNightActionButton ${className}`;
+        btn.innerHTML = icon
+            ? `<span class="material-icons ${icon}" aria-hidden="true"></span><span>${text}</span>`
+            : `<span>${text}</span>`;
         btn.onclick = onClick;
         return btn;
     }
@@ -29,7 +252,7 @@
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.is = 'emby-button';
-        btn.className = `button-flat detailButton emby-button ${className}`;
+        btn.className = `button-flat detailButton emby-button movieNightDetailButton ${className}`;
         btn.title = title;
         btn.innerHTML = `
             <div class="detailButton-content">
@@ -41,62 +264,76 @@
     }
 
     async function injectUI() {
+        ensureMovieNightStyles();
         await checkOnboarding();
 
         // Item Detail Page
-        const detailButtons = document.querySelector('.mainDetailButtons');
-        if (detailButtons) {
-            const itemId = getItemIdFromUrl();
-            if (itemId) {
-                // MovieNight Rating
-                if (!document.querySelector('.btnMovieNightRate')) {
-                    const rateBtn = createIconButton('star_rate', 'Rate on MovieNight', 'btnMovieNightRate', (e) => {
-                        e.preventDefault(); e.stopPropagation(); showRatingDialog(itemId);
-                    });
-                    insertInDetailRow(detailButtons, rateBtn);
-                }
-                // Mark Viewed in MovieNight
-                if (!document.querySelector('.btnMovieNightMarkViewed')) {
-                    const viewedBtn = createIconButton('visibility', 'Mark Viewed in MovieNight', 'btnMovieNightMarkViewed', (e) => {
-                        e.preventDefault(); e.stopPropagation(); submitViewed(itemId);
-                    });
-                    insertInDetailRow(detailButtons, viewedBtn);
-                }
+        const itemId = getItemIdFromUrl();
+        document.querySelectorAll('.mainDetailButtons').forEach((detailButtons) => {
+            if (!itemId) return;
+
+            // MovieNight Rating
+            const existingRateBtn = detailButtons.querySelector('.btnMovieNightRate');
+            if (!existingRateBtn || existingRateBtn.dataset.movieNightItemId !== itemId) {
+                existingRateBtn?.remove();
+                const rateBtn = createIconButton('star_rate', 'Rate on MovieNight', 'btnMovieNightRate', (e) => {
+                    e.preventDefault(); e.stopPropagation(); showRatingDialog(itemId);
+                });
+                rateBtn.dataset.movieNightItemId = itemId;
+                insertInDetailRow(detailButtons, rateBtn);
             }
-        }
+            // Mark Viewed in MovieNight
+            const existingViewedBtn = detailButtons.querySelector('.btnMovieNightMarkViewed');
+            if (!existingViewedBtn || existingViewedBtn.dataset.movieNightItemId !== itemId) {
+                existingViewedBtn?.remove();
+                const viewedBtn = createIconButton('visibility', 'Mark Viewed in MovieNight', 'btnMovieNightMarkViewed', (e) => {
+                    e.preventDefault(); e.stopPropagation(); submitViewed(itemId);
+                });
+                viewedBtn.dataset.movieNightItemId = itemId;
+                insertInDetailRow(detailButtons, viewedBtn);
+            }
+        });
 
         // Library Pages
-        const toolBar = document.querySelector('.libraryPage:not(.itemDetailPage) .flex.align-items-center.justify-content-center.focuscontainer-x');
-        if (toolBar && !document.querySelector('.btnMovieNightRecommend')) {
-             toolBar.appendChild(createTextButton('Recommend Film', 'btnMovieNightRecommend', (e) => {
-                 e.preventDefault(); showRecommendation();
-             }));
-             toolBar.appendChild(createTextButton('Add Movie', 'btnMovieNightAddMovie', (e) => {
-                 e.preventDefault(); showAddMovieDialog();
-             }));
-        }
+        document
+            .querySelectorAll('.libraryPage:not(.itemDetailPage) .flex.align-items-center.justify-content-center.focuscontainer-x')
+            .forEach((toolBar) => {
+                if (!toolBar.querySelector('.btnMovieNightRecommend')) {
+                    toolBar.appendChild(createTextButton('Recommend Film', 'btnMovieNightRecommend', (e) => {
+                        e.preventDefault(); showRecommendation();
+                    }, 'auto_awesome'));
+                }
+                if (!toolBar.querySelector('.btnMovieNightAddMovie')) {
+                    toolBar.appendChild(createTextButton('Add Movie', 'btnMovieNightAddMovie', (e) => {
+                        e.preventDefault(); showAddMovieDialog();
+                    }, 'add'));
+                }
+            });
 
         // Home Page
-        const homeSections = document.querySelector('.sections.homeSectionsContainer');
-        if (homeSections && !document.querySelector('.movieNightHomeButtons')) {
+        document.querySelectorAll('.sections.homeSectionsContainer').forEach((homeSections) => {
+            if (homeSections.querySelector('.movieNightHomeButtons')) return;
+
             const section = document.createElement('div');
             section.className = 'verticalSection movieNightHomeButtons';
             section.style.padding = '0 var(--sidePadding)';
             section.innerHTML = `
-                <div class="sectionTitleContainer" style="display:flex; align-items:center; justify-content:space-between;">
-                    <h2 class="sectionTitle">MovieNight</h2>
-                    <span class="movieNightSyncStatus" style="font-size:0.8em; opacity:0.7;"></span>
+                <div class="movieNightPanel">
+                    <div class="movieNightPanelHeader">
+                        <h2 class="sectionTitle">MovieNight</h2>
+                        <span class="movieNightSyncStatus"></span>
+                    </div>
+                    <div class="movieNightBtnContainer"></div>
                 </div>
-                <div class="movieNightBtnContainer" style="display:flex; flex-wrap:wrap; margin-top:0.5em;"></div>
             `;
             const btnContainer = section.querySelector('.movieNightBtnContainer');
-            btnContainer.appendChild(createTextButton('Recommend Film', 'btnMovieNightRecommend', showRecommendation));
-            btnContainer.appendChild(createTextButton('Add Movie', 'btnMovieNightAddMovie', showAddMovieDialog));
-            btnContainer.appendChild(createTextButton('Sync Library', 'btnMovieNightSync', triggerSync));
+            btnContainer.appendChild(createTextButton('Recommend Film', 'btnMovieNightRecommend', showRecommendation, 'auto_awesome'));
+            btnContainer.appendChild(createTextButton('Add Movie', 'btnMovieNightAddMovie', showAddMovieDialog, 'add'));
+            btnContainer.appendChild(createTextButton('Sync Library', 'btnMovieNightSync', triggerSync, 'sync'));
 
             homeSections.insertBefore(section, homeSections.firstChild);
             updateSyncStatus();
-        }
+        });
     }
 
     function insertInDetailRow(container, btn) {
@@ -125,23 +362,21 @@
 
     function createDialogBase(title) {
         const dialog = document.createElement('div');
-        dialog.className = 'dialog';
+        dialog.className = 'dialog movieNightDialog';
         dialog.style.position = 'fixed';
         dialog.style.top = '50%'; dialog.style.left = '50%';
         dialog.style.transform = 'translate(-50%, -50%)';
         dialog.style.zIndex = '99999';
-        dialog.style.padding = '2.5em';
+        dialog.style.padding = '1.25em';
         dialog.style.minWidth = '350px';
-        dialog.style.backgroundColor = '#1a1a1a';
-        dialog.style.borderRadius = '1.5em';
-        dialog.style.color = 'white';
-        dialog.style.boxShadow = '0 20px 50px rgba(0,0,0,0.8)';
-        dialog.style.border = '1px solid #444';
         dialog.style.opacity = '1';
 
         dialog.innerHTML = `
-            <h2 style="margin-top:0; text-align:center; font-weight:400; color:white; opacity:1;">${title}</h2>
-            <div class="dialog-content" style="margin:1.5em 0; opacity:1;"></div>
+            <h2 class="movieNightDialogTitle">
+                <span class="material-icons auto_awesome" aria-hidden="true"></span>
+                <span>${title}</span>
+            </h2>
+            <div class="dialog-content" style="margin:1em 0; opacity:1;"></div>
             <div class="dialog-footer" style="display:flex; gap:1em; opacity:1;">
                 <button is="emby-button" class="emby-button button-flat btnCancel" style="flex:1; color: white !important; opacity:1;">Cancel</button>
             </div>
@@ -187,23 +422,23 @@
         const footer = dialog.querySelector('.dialog-footer');
 
         content.innerHTML = `
-            <div style="margin-bottom:1em;">
-                <label style="display:block; margin-bottom:0.3em; font-size:0.9em; opacity:0.8; color:white;">Movie Title (Required)</label>
-                <input type="text" class="emby-input txtTitle" style="width:100%; box-sizing:border-box; background:#333; border:1px solid #555; color:white; padding:0.6em;" placeholder="e.g. Inception">
+            <div class="movieNightField">
+                <label>Movie Title</label>
+                <input type="text" class="emby-input txtTitle" placeholder="e.g. Inception">
             </div>
-            <div style="display:flex; gap:1em; margin-bottom:1em;">
-                <div style="flex:1;">
-                    <label style="display:block; margin-bottom:0.3em; font-size:0.9em; opacity:0.8; color:white;">Year</label>
-                    <input type="number" class="emby-input txtYear" style="width:100%; box-sizing:border-box; background:#333; border:1px solid #555; color:white; padding:0.6em;" placeholder="2010">
+            <div class="movieNightFieldRow">
+                <div class="movieNightField">
+                    <label>Year</label>
+                    <input type="number" class="emby-input txtYear" placeholder="2010">
                 </div>
-                <div style="flex:2;">
-                    <label style="display:block; margin-bottom:0.3em; font-size:0.9em; opacity:0.8; color:white;">IMDb ID</label>
-                    <input type="text" class="emby-input txtImdb" style="width:100%; box-sizing:border-box; background:#333; border:1px solid #555; color:white; padding:0.6em;" placeholder="tt1375666">
+                <div class="movieNightField">
+                    <label>IMDb ID</label>
+                    <input type="text" class="emby-input txtImdb" placeholder="tt1375666">
                 </div>
             </div>
-            <div>
-                <label style="display:block; margin-bottom:0.3em; font-size:0.9em; opacity:0.8; color:white;">Stream URL (Optional)</label>
-                <input type="text" class="emby-input txtUrl" style="width:100%; box-sizing:border-box; background:#333; border:1px solid #555; color:white; padding:0.6em;" placeholder="http://...">
+            <div class="movieNightField">
+                <label>Stream URL</label>
+                <input type="text" class="emby-input txtUrl" placeholder="http://...">
             </div>
         `;
 
@@ -311,10 +546,10 @@
 
     async function checkOnboarding() {
         if (window.movieNightOnboardingChecked) return;
-        window.movieNightOnboardingChecked = true;
 
         const userId = ApiClient.getCurrentUserId();
         if (!userId) return;
+        window.movieNightOnboardingChecked = true;
 
         try {
             const prefs = await ApiClient.getJSON(ApiClient.getUrl(`MovieNight/Users/${userId}/Preferences`));
@@ -345,15 +580,10 @@
         const userId = ApiClient.getCurrentUserId();
         try {
             const response = await ApiClient.getJSON(ApiClient.getUrl(`MovieNight/Users/${userId}/Recommendations`));
-            const recommendations = typeof response === 'string' ? JSON.parse(response) : response;
+            const recommendations = normalizeRecommendations(response);
 
             if (recommendations && recommendations.length > 0) {
-                const rec = recommendations[0];
-                const film = rec.film || rec;
-                showMsg({
-                    title: 'MovieNight Recommendation',
-                    text: `How about watching: ${film.title}?\n\nReason: ${rec.reasons?.join(', ') || 'Based on your preferences'}`
-                });
+                showRecommendationsDialog(recommendations);
             } else {
                 showMsg('No recommendations found at the moment.');
             }
@@ -361,6 +591,187 @@
             console.error('Failed to get recommendations', err);
             showMsg('Failed to get recommendations. Check your API token and MovieNight status.');
         }
+    }
+
+    function normalizeRecommendations(response) {
+        if (typeof response === 'string') {
+            return JSON.parse(response);
+        }
+
+        if (Array.isArray(response)) {
+            return response;
+        }
+
+        return response?.items || response?.recommendations || [];
+    }
+
+    function getRecommendationFilm(recommendation) {
+        return recommendation?.film || recommendation || {};
+    }
+
+    function getRecommendationTitle(recommendation) {
+        const film = getRecommendationFilm(recommendation);
+        return film.title || recommendation?.title || 'Untitled';
+    }
+
+    function getRecommendationItemId(recommendation) {
+        const film = getRecommendationFilm(recommendation);
+        return recommendation?.jellyfinItemId || film.jellyfinItemId;
+    }
+
+    function getRecommendationWatchUrl(recommendation) {
+        const itemId = getRecommendationItemId(recommendation);
+        if (recommendation?.watchUrl) return recommendation.watchUrl;
+        return itemId ? `${window.location.origin}/web/#/details?id=${encodeURIComponent(itemId)}` : null;
+    }
+
+    function getRecommendationPosterUrl(recommendation) {
+        const itemId = getRecommendationItemId(recommendation);
+        if (!itemId) return null;
+
+        if (typeof ApiClient !== 'undefined' && ApiClient.getUrl) {
+            return ApiClient.getUrl(`Items/${itemId}/Images/Primary`, {
+                fillHeight: 330,
+                fillWidth: 220,
+                quality: 90
+            });
+        }
+
+        return `/Items/${encodeURIComponent(itemId)}/Images/Primary?fillHeight=330&fillWidth=220&quality=90`;
+    }
+
+    function formatRecommendationScore(score) {
+        return typeof score === 'number' ? `${Math.round(score * 100)}% match` : '';
+    }
+
+    function showRecommendationsDialog(recommendations) {
+        const overlay = createOverlay();
+        const dialog = createDialogBase('MovieNight Recommendations');
+        dialog.style.width = 'min(760px, calc(100vw - 2em))';
+        dialog.style.maxHeight = 'min(760px, calc(100vh - 2em))';
+        dialog.style.display = 'flex';
+        dialog.style.flexDirection = 'column';
+
+        const content = dialog.querySelector('.dialog-content');
+        const footer = dialog.querySelector('.dialog-footer');
+        const cleanup = () => { if (overlay.parentNode) document.body.removeChild(overlay); };
+
+        content.style.overflowY = 'auto';
+        content.style.paddingRight = '.25em';
+        content.style.marginBottom = '1em';
+        footer.querySelector('.btnCancel').textContent = 'Close';
+
+        const list = document.createElement('div');
+        list.className = 'movieNightRecommendationList';
+        content.replaceChildren(list);
+
+        recommendations.forEach((recommendation) => {
+            list.appendChild(createRecommendationRow(recommendation, cleanup));
+        });
+
+        dialog.querySelector('.btnCancel').onclick = cleanup;
+        overlay.onclick = (e) => { if (e.target === overlay) cleanup(); };
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+    }
+
+    function createRecommendationRow(recommendation, cleanup) {
+        const film = getRecommendationFilm(recommendation);
+        const itemId = getRecommendationItemId(recommendation);
+        const watchUrl = getRecommendationWatchUrl(recommendation);
+        const posterUrl = getRecommendationPosterUrl(recommendation);
+
+        const row = document.createElement('div');
+        row.className = 'movieNightRecommendation';
+
+        const poster = document.createElement('img');
+        poster.className = 'movieNightRecommendationPoster';
+        poster.alt = '';
+        if (posterUrl) {
+            poster.src = posterUrl;
+        }
+        poster.onerror = () => {
+            poster.removeAttribute('src');
+        };
+
+        const body = document.createElement('div');
+        body.className = 'movieNightRecommendationBody';
+
+        const header = document.createElement('div');
+        header.className = 'movieNightRecommendationHeader';
+
+        const titleBlock = document.createElement('div');
+        titleBlock.style.minWidth = '0';
+
+        const title = document.createElement('div');
+        title.className = 'movieNightRecommendationTitle';
+        title.textContent = getRecommendationTitle(recommendation);
+        titleBlock.appendChild(title);
+
+        const meta = [film.releaseYear, ...(film.genres || [])].filter(Boolean).join(' · ');
+        if (meta) {
+            const metaEl = document.createElement('div');
+            metaEl.className = 'movieNightRecommendationMeta';
+            metaEl.textContent = meta;
+            titleBlock.appendChild(metaEl);
+        }
+
+        const score = document.createElement('div');
+        score.className = 'movieNightRecommendationScore';
+        score.textContent = formatRecommendationScore(recommendation?.score);
+
+        header.appendChild(titleBlock);
+        if (score.textContent) header.appendChild(score);
+        body.appendChild(header);
+
+        if (film.description) {
+            const description = document.createElement('div');
+            description.className = 'movieNightRecommendationDescription';
+            description.textContent = film.description;
+            body.appendChild(description);
+        }
+
+        const reasons = recommendation?.reasons || [];
+        if (reasons.length) {
+            const reason = document.createElement('div');
+            reason.className = 'movieNightRecommendationReason';
+            reason.textContent = reasons.join(', ');
+            body.appendChild(reason);
+        }
+
+        const actions = document.createElement('div');
+        actions.className = 'movieNightRecommendationActions';
+
+        if (watchUrl) {
+            actions.appendChild(createRecommendationAction('Open', 'play_arrow', () => {
+                cleanup();
+                window.location.href = watchUrl;
+            }));
+        }
+
+        if (itemId) {
+            actions.appendChild(createRecommendationAction('Rate', 'star_rate', () => {
+                cleanup();
+                showRatingDialog(itemId);
+            }));
+            actions.appendChild(createRecommendationAction('Viewed', 'visibility', () => {
+                cleanup();
+                submitViewed(itemId);
+            }));
+        }
+
+        body.appendChild(actions);
+        row.appendChild(poster);
+        row.appendChild(body);
+        return row;
+    }
+
+    function createRecommendationAction(text, icon, onClick) {
+        return createTextButton(text, 'movieNightRecommendationAction', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onClick();
+        }, icon);
     }
 
     async function addMovie(title, url, year, imdbId) {
@@ -439,17 +850,87 @@
         }
     }
 
-    let timeout;
-    const throttledInject = () => {
-        if (timeout) return;
-        timeout = setTimeout(() => {
-            injectUI();
-            timeout = null;
-        }, 100);
-    };
+    let injectTimeout;
+    let injectInFlight = false;
+    let rerunAfterInject = false;
+    let routeRetryTimeouts = [];
+    const routeEventListeners = [];
+    const patchedHistoryMethods = [];
 
-    const observer = new MutationObserver(throttledInject);
+    async function runInject() {
+        if (injectInFlight) {
+            rerunAfterInject = true;
+            return;
+        }
+
+        injectInFlight = true;
+        try {
+            await injectUI();
+        } catch (err) {
+            console.error('MovieNight UI injection failed', err);
+        } finally {
+            injectInFlight = false;
+            if (rerunAfterInject) {
+                rerunAfterInject = false;
+                scheduleInject();
+            }
+        }
+    }
+
+    function scheduleInject(delay = 100) {
+        if (injectTimeout) return;
+        injectTimeout = setTimeout(() => {
+            injectTimeout = null;
+            runInject();
+        }, delay);
+    }
+
+    function scheduleRouteInject() {
+        routeRetryTimeouts.forEach(clearTimeout);
+        routeRetryTimeouts = ROUTE_RETRY_DELAYS_MS.map((delay) => {
+            return setTimeout(() => runInject(), delay);
+        });
+    }
+
+    function patchHistoryMethod(name) {
+        const current = history[name];
+        const original = current?._movieNightOriginal || current;
+        if (typeof original !== 'function') return;
+
+        history[name] = function () {
+            const result = original.apply(this, arguments);
+            scheduleRouteInject();
+            return result;
+        };
+        history[name]._movieNightOriginal = original;
+        patchedHistoryMethods.push(name);
+    }
+
+    function addRouteEventListener(name) {
+        window.addEventListener(name, scheduleRouteInject);
+        routeEventListeners.push(name);
+    }
+
+    patchHistoryMethod('pushState');
+    patchHistoryMethod('replaceState');
+    addRouteEventListener('hashchange');
+    addRouteEventListener('popstate');
+    addRouteEventListener('pageshow');
+
+    const observer = new MutationObserver(() => scheduleInject());
     observer.observe(document.body, { childList: true, subtree: true });
 
-    injectUI();
+    window.movieNightUiCleanup = () => {
+        observer.disconnect();
+        if (injectTimeout) clearTimeout(injectTimeout);
+        routeRetryTimeouts.forEach(clearTimeout);
+        routeEventListeners.forEach((name) => window.removeEventListener(name, scheduleRouteInject));
+        patchedHistoryMethods.forEach((name) => {
+            const original = history[name]?._movieNightOriginal;
+            if (original) history[name] = original;
+        });
+        window.movieNightUiCleanup = null;
+    };
+
+    scheduleRouteInject();
 })();

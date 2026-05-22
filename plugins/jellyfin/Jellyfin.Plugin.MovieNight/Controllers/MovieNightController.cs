@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.MovieNight.Services;
@@ -136,7 +138,8 @@ public class MovieNightController : ControllerBase
     }
 
     /// <summary>
-    /// Creates a new film by generating a .strm file.
+    /// Creates a new film by generating a .strm file in a folder-per-movie structure.
+    /// Structure: Movie Name (Year) [imdbid-ttXXXXXXX]/Movie Name (Year) [imdbid-ttXXXXXXX].strm
     /// </summary>
     [HttpPost("Films")]
     [Authorize]
@@ -148,24 +151,45 @@ public class MovieNightController : ControllerBase
             return BadRequest("STRM output path is not configured.");
         }
 
+        if (string.IsNullOrWhiteSpace(request.Title))
+        {
+            return BadRequest("Movie title is required.");
+        }
+
         try
         {
-            if (!Directory.Exists(config.StrmOutputPath))
+            // Construct name: "Movie Name (Year) [imdbid-ttXXXXXXX]"
+            var folderName = request.Title.Trim();
+            if (request.Year.HasValue)
             {
-                Directory.CreateDirectory(config.StrmOutputPath);
+                folderName += $" ({request.Year})";
+            }
+            if (!string.IsNullOrWhiteSpace(request.ImdbId))
+            {
+                var ttId = request.ImdbId.Trim().ToLowerInvariant();
+                if (!ttId.StartsWith("tt")) ttId = "tt" + ttId;
+                folderName += $" [imdbid-{ttId}]";
             }
 
-            var safeTitle = string.Join("_", request.Title.Split(Path.GetInvalidFileNameChars()));
-            var fileName = $"{safeTitle}.strm";
-            var filePath = Path.Combine(config.StrmOutputPath, fileName);
+            // Sanitize for file system
+            var invalidChars = Path.GetInvalidFileNameChars();
+            var safeFolderName = new string(folderName.Select(c => invalidChars.Contains(c) ? '_' : c).ToArray());
+
+            var movieDirectory = Path.Combine(config.StrmOutputPath, safeFolderName);
+            if (!Directory.Exists(movieDirectory))
+            {
+                Directory.CreateDirectory(movieDirectory);
+            }
+
+            var filePath = Path.Combine(movieDirectory, $"{safeFolderName}.strm");
 
             var strmContent = string.IsNullOrWhiteSpace(request.Url)
                 ? "http://placeholder.url/upload_me_later"
-                : request.Url;
+                : request.Url.Trim();
 
             await System.IO.File.WriteAllTextAsync(filePath, strmContent).ConfigureAwait(false);
 
-            return Ok(new { FilePath = filePath });
+            return Ok(new { FilePath = filePath, FolderName = safeFolderName });
         }
         catch (Exception ex)
         {
@@ -177,7 +201,7 @@ public class MovieNightController : ControllerBase
 /// <summary>
 /// Create film request.
 /// </summary>
-public sealed record CreateFilmRequest(string Title, string? Url);
+public sealed record CreateFilmRequest(string Title, string? Url, int? Year, string? ImdbId);
 
 /// <summary>
 /// Rating request.

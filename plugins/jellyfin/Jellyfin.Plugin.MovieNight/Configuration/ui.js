@@ -185,12 +185,22 @@
         const footer = dialog.querySelector('.dialog-footer');
 
         content.innerHTML = `
-            <div style="margin-bottom:1.5em;">
-                <label style="display:block; margin-bottom:0.6em; font-size:1em; opacity:0.9; color:white;">Movie Title</label>
+            <div style="margin-bottom:1em;">
+                <label style="display:block; margin-bottom:0.3em; font-size:0.9em; opacity:0.8; color:white;">Movie Title (Required)</label>
                 <input type="text" class="emby-input txtTitle" style="width:100%; box-sizing:border-box; background:#333; border:1px solid #555; color:white; padding:0.6em;" placeholder="e.g. Inception">
             </div>
+            <div style="display:flex; gap:1em; margin-bottom:1em;">
+                <div style="flex:1;">
+                    <label style="display:block; margin-bottom:0.3em; font-size:0.9em; opacity:0.8; color:white;">Year</label>
+                    <input type="number" class="emby-input txtYear" style="width:100%; box-sizing:border-box; background:#333; border:1px solid #555; color:white; padding:0.6em;" placeholder="2010">
+                </div>
+                <div style="flex:2;">
+                    <label style="display:block; margin-bottom:0.3em; font-size:0.9em; opacity:0.8; color:white;">IMDb ID</label>
+                    <input type="text" class="emby-input txtImdb" style="width:100%; box-sizing:border-box; background:#333; border:1px solid #555; color:white; padding:0.6em;" placeholder="tt1375666">
+                </div>
+            </div>
             <div>
-                <label style="display:block; margin-bottom:0.6em; font-size:1em; opacity:0.9; color:white;">Stream URL (Optional)</label>
+                <label style="display:block; margin-bottom:0.3em; font-size:0.9em; opacity:0.8; color:white;">Stream URL (Optional)</label>
                 <input type="text" class="emby-input txtUrl" style="width:100%; box-sizing:border-box; background:#333; border:1px solid #555; color:white; padding:0.6em;" placeholder="http://...">
             </div>
         `;
@@ -206,10 +216,12 @@
 
         btnAdd.onclick = async () => {
             const title = dialog.querySelector('.txtTitle').value;
+            const year = dialog.querySelector('.txtYear').value;
+            const imdbId = dialog.querySelector('.txtImdb').value;
             const url = dialog.querySelector('.txtUrl').value;
             if (!title) return;
             cleanup();
-            await addMovie(title, url);
+            await addMovie(title, url, year, imdbId);
         };
 
         dialog.querySelector('.btnCancel').onclick = cleanup;
@@ -241,12 +253,16 @@
         }
     }
 
-    async function addMovie(title, url) {
+    async function addMovie(title, url, year, imdbId) {
         try {
+            const data = { title, url };
+            if (year) data.year = parseInt(year);
+            if (imdbId) data.imdbId = imdbId;
+
             await ApiClient.ajax({
                 type: 'POST',
                 url: ApiClient.getUrl(`MovieNight/Films`),
-                data: JSON.stringify({ title, url }),
+                data: JSON.stringify(data),
                 contentType: 'application/json'
             });
             showMsg(`STRM file created for "${title}". Refresh your library to see it.`);

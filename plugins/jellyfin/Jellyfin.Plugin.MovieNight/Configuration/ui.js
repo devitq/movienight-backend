@@ -113,10 +113,11 @@
         const overlay = document.createElement('div');
         overlay.className = 'dialogBackdrop dialogBackdropOpened';
         overlay.style.zIndex = '99998';
-        overlay.style.backgroundColor = 'rgba(0,0,0,0.6)';
+        overlay.style.backgroundColor = 'rgba(0,0,0,0.7)';
         overlay.style.position = 'fixed';
         overlay.style.top = '0'; overlay.style.left = '0'; overlay.style.right = '0'; overlay.style.bottom = '0';
-        overlay.style.backdropFilter = 'blur(4px)';
+        overlay.style.backdropFilter = 'blur(8px)';
+        overlay.style.opacity = '1';
         return overlay;
     }
 
@@ -127,19 +128,20 @@
         dialog.style.top = '50%'; dialog.style.left = '50%';
         dialog.style.transform = 'translate(-50%, -50%)';
         dialog.style.zIndex = '99999';
-        dialog.style.padding = '2em';
-        dialog.style.minWidth = '320px';
+        dialog.style.padding = '2.5em';
+        dialog.style.minWidth = '350px';
         dialog.style.backgroundColor = '#1a1a1a';
         dialog.style.borderRadius = '1.5em';
         dialog.style.color = 'white';
-        dialog.style.boxShadow = '0 10px 25px rgba(0,0,0,0.5)';
-        dialog.style.border = '1px solid #333';
+        dialog.style.boxShadow = '0 20px 50px rgba(0,0,0,0.8)';
+        dialog.style.border = '1px solid #444';
+        dialog.style.opacity = '1';
 
         dialog.innerHTML = `
-            <h2 style="margin-top:0; text-align:center; font-weight:400;">${title}</h2>
-            <div class="dialog-content" style="margin:1.5em 0;"></div>
-            <div class="dialog-footer" style="display:flex; gap:1em;">
-                <button is="emby-button" class="emby-button button-flat btnCancel" style="flex:1; color: white;">Cancel</button>
+            <h2 style="margin-top:0; text-align:center; font-weight:400; color:white; opacity:1;">${title}</h2>
+            <div class="dialog-content" style="margin:1.5em 0; opacity:1;"></div>
+            <div class="dialog-footer" style="display:flex; gap:1em; opacity:1;">
+                <button is="emby-button" class="emby-button button-flat btnCancel" style="flex:1; color: white !important; opacity:1;">Cancel</button>
             </div>
         `;
         return dialog;
@@ -150,7 +152,7 @@
         const dialog = createDialogBase('Rate on MovieNight');
         const content = dialog.querySelector('.dialog-content');
 
-        content.innerHTML = `<div class="rating-grid" style="display:grid; grid-template-columns:repeat(5, 1fr); gap:0.6em;"></div>`;
+        content.innerHTML = `<div class="rating-grid" style="display:grid; grid-template-columns:repeat(5, 1fr); gap:0.8em;"></div>`;
         const grid = content.querySelector('.rating-grid');
 
         const cleanup = () => { if (overlay.parentNode) document.body.removeChild(overlay); };
@@ -161,6 +163,11 @@
             btn.className = 'emby-button raised';
             btn.innerText = i;
             btn.style.padding = '0.8em 0';
+            btn.style.textAlign = 'center';
+            btn.style.display = 'flex';
+            btn.style.alignItems = 'center';
+            btn.style.justifyContent = 'center';
+            btn.style.fontSize = '1.2em';
             btn.onclick = async () => { cleanup(); await submitRating(itemId, i); };
             grid.appendChild(btn);
         }
@@ -178,19 +185,20 @@
         const footer = dialog.querySelector('.dialog-footer');
 
         content.innerHTML = `
-            <div style="margin-bottom:1em;">
-                <label style="display:block; margin-bottom:0.4em; font-size:0.9em; opacity:0.8;">Movie Title</label>
-                <input type="text" class="emby-input txtTitle" style="width:100%; box-sizing:border-box;" placeholder="e.g. Inception">
+            <div style="margin-bottom:1.5em;">
+                <label style="display:block; margin-bottom:0.6em; font-size:1em; opacity:0.9; color:white;">Movie Title</label>
+                <input type="text" class="emby-input txtTitle" style="width:100%; box-sizing:border-box; background:#333; border:1px solid #555; color:white; padding:0.6em;" placeholder="e.g. Inception">
             </div>
             <div>
-                <label style="display:block; margin-bottom:0.4em; font-size:0.9em; opacity:0.8;">Stream URL (Optional)</label>
-                <input type="text" class="emby-input txtUrl" style="width:100%; box-sizing:border-box;" placeholder="http://...">
+                <label style="display:block; margin-bottom:0.6em; font-size:1em; opacity:0.9; color:white;">Stream URL (Optional)</label>
+                <input type="text" class="emby-input txtUrl" style="width:100%; box-sizing:border-box; background:#333; border:1px solid #555; color:white; padding:0.6em;" placeholder="http://...">
             </div>
         `;
 
         const btnAdd = document.createElement('button');
         btnAdd.className = 'emby-button raised button-submit';
         btnAdd.style.flex = '2';
+        btnAdd.style.backgroundColor = '#0064d2';
         btnAdd.innerHTML = '<span>Add Film</span>';
         footer.insertBefore(btnAdd, footer.firstChild);
 

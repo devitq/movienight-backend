@@ -43,16 +43,12 @@ jobs:
             plugins/jellyfin/Jellyfin.Plugin.MovieNight/Jellyfin.Plugin.MovieNight.csproj \
             -c Release \
             --no-restore \
-            -o artifacts/jellyfin-plugin/MovieNight
-
-      - name: Set artifact name
-        id: meta
-        run: echo "artifact-name=jellyfin-plugin-${{ github.run_id }}-${{ github.run_attempt }}" >> "$GITHUB_OUTPUT"
+            -o artifacts/MovieNight
 
       - name: Upload plugin artifact
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ steps.meta.outputs.artifact-name }}
-          path: artifacts/jellyfin-plugin/**
+          name: MovieNight
+          path: artifacts/MovieNight/*
           retention-days: 7
           if-no-files-found: error

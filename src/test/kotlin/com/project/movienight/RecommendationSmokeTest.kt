@@ -335,6 +335,107 @@ class RecommendationSmokeTest {
             }
     }
 
+    @Test
+    fun `should rank films similar to highly rated choices above broad onboarding matches`() {
+        mockMvc
+            .post("/api/users") {
+                contentType = MediaType.APPLICATION_JSON
+                content =
+                    objectMapper.writeValueAsString(
+                        CreateUserRequest(
+                            name = "Harry",
+                            email = "harry@example.com",
+                        ),
+                    )
+            }.andExpect {
+                status { isCreated() }
+            }
+
+        val userId =
+            UUID.fromString(
+                jdbcTemplate.queryForObject(
+                    "SELECT id FROM users WHERE email = ?",
+                    String::class.java,
+                    "harry@example.com",
+                ),
+            )
+
+        val likedFirstFilmId =
+            createFilm(
+                title = "Wizard School Stone",
+                description = "A young wizard discovers a magic school, spells, friendship, and a hidden dark force.",
+                releaseYear = 2001,
+                genres = listOf("Fantasy", "Adventure", "Family"),
+                imdbRating = 8.0,
+            )
+        val likedSecondFilmId =
+            createFilm(
+                title = "Chamber of Magic",
+                description =
+                    "Young friends return to a wizard school and uncover a secret chamber full of magical danger.",
+                releaseYear = 2002,
+                genres = listOf("Fantasy", "Adventure", "Family"),
+                imdbRating = 8.1,
+            )
+        val magicCandidateId =
+            createFilm(
+                title = "Sorcerer Academy",
+                description = "A teenage student joins an academy with friends and faces an enchanted threat.",
+                releaseYear = 2005,
+                genres = listOf("Fantasy", "Adventure", "Family"),
+                imdbRating = 7.0,
+            )
+        createFilm(
+            title = "Highway Strike",
+            description = "An elite agent chases criminals through explosions, heists, and street fights.",
+            releaseYear = 2005,
+            genres = listOf("Action"),
+            imdbRating = 9.4,
+        )
+
+        mockMvc
+            .put("/api/users/$userId/preferences") {
+                contentType = MediaType.APPLICATION_JSON
+                content =
+                    objectMapper.writeValueAsString(
+                        UpsertUserPreferencesRequest(
+                            weightedGenres = mapOf("Action" to 5),
+                            eras = listOf("2000s"),
+                            contentTypes = listOf("FILM"),
+                        ),
+                    )
+            }.andExpect {
+                status { isOk() }
+            }
+
+        listOf(likedFirstFilmId, likedSecondFilmId).forEach { filmId ->
+            mockMvc
+                .post("/api/users/$userId/ratings/films/$filmId") {
+                    contentType = MediaType.APPLICATION_JSON
+                    content = objectMapper.writeValueAsString(RateFilmRequest(score = 10, note = "Favorite"))
+                }.andExpect {
+                    status { isCreated() }
+                }
+
+            mockMvc
+                .post("/api/users/$userId/library/films/$filmId/viewed")
+                .andExpect {
+                    status { isOk() }
+                }
+        }
+
+        mockMvc
+            .get("/api/users/$userId/recommendations") {
+                param("contentType", "FILM")
+                param("limit", "2")
+            }.andExpect {
+                status { isOk() }
+                jsonPath("$[0].filmId") { value(magicCandidateId.toString()) }
+                jsonPath("$[0].reasons[0]") { value("Similar to films you rated highly") }
+                jsonPath("$[0].reasons[1]") { value("Shares taste signal: Family Adventure") }
+            }
+    }
+
     private fun cleanDatabase() {
         jdbcTemplate.execute("DELETE FROM recommendation_events")
         jdbcTemplate.execute("DELETE FROM user_recommendation_weights")
@@ -370,6 +471,8 @@ class RecommendationSmokeTest {
 
     private fun createFilm(
         title: String,
+        description: String = "$title description",
+        releaseYear: Int? = null,
         genres: List<String>,
         imdbRating: Double,
     ): UUID {
@@ -380,8 +483,9 @@ class RecommendationSmokeTest {
                     objectMapper.writeValueAsString(
                         CreateFilmRequest(
                             title = title,
-                            description = "$title description",
+                            description = description,
                             contentType = "FILM",
+                            releaseYear = releaseYear,
                             genres = genres,
                             imdbRating = imdbRating,
                         ),

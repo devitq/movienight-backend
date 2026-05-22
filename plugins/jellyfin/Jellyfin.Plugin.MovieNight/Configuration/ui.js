@@ -41,10 +41,9 @@
     }
 
     async function injectUI() {
-        // Check for onboarding
         await checkOnboarding();
 
-        // 1. Item Detail Page
+        // Item Detail Page
         const detailButtons = document.querySelector('.mainDetailButtons');
         if (detailButtons) {
             const itemId = getItemIdFromUrl();
@@ -66,18 +65,18 @@
             }
         }
 
-        // 2. Library Pages - Add text buttons to toolbar
+        // Library Pages
         const toolBar = document.querySelector('.libraryPage:not(.itemDetailPage) .flex.align-items-center.justify-content-center.focuscontainer-x');
         if (toolBar && !document.querySelector('.btnMovieNightRecommend')) {
              toolBar.appendChild(createTextButton('Recommend Film', 'btnMovieNightRecommend', (e) => {
                  e.preventDefault(); showRecommendation();
              }));
-             toolBar.appendChild(createTextButton('Add Movie (STRM)', 'btnMovieNightAddMovie', (e) => {
+             toolBar.appendChild(createTextButton('Add Movie', 'btnMovieNightAddMovie', (e) => {
                  e.preventDefault(); showAddMovieDialog();
              }));
         }
 
-        // 3. Home Page - Prepend a MovieNight section
+        // Home Page
         const homeSections = document.querySelector('.sections.homeSectionsContainer');
         if (homeSections && !document.querySelector('.movieNightHomeButtons')) {
             const section = document.createElement('div');
@@ -92,7 +91,7 @@
             `;
             const btnContainer = section.querySelector('.movieNightBtnContainer');
             btnContainer.appendChild(createTextButton('Recommend Film', 'btnMovieNightRecommend', showRecommendation));
-            btnContainer.appendChild(createTextButton('Add Movie (STRM)', 'btnMovieNightAddMovie', showAddMovieDialog));
+            btnContainer.appendChild(createTextButton('Add Movie', 'btnMovieNightAddMovie', showAddMovieDialog));
             btnContainer.appendChild(createTextButton('Sync Library', 'btnMovieNightSync', triggerSync));
 
             homeSections.insertBefore(section, homeSections.firstChild);
@@ -183,7 +182,7 @@
 
     async function showAddMovieDialog() {
         const overlay = createOverlay();
-        const dialog = createDialogBase('Add Movie (STRM)');
+        const dialog = createDialogBase('Add Movie');
         const content = dialog.querySelector('.dialog-content');
         const footer = dialog.querySelector('.dialog-footer');
 

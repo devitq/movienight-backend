@@ -20,17 +20,14 @@ class JellyfinSyncController(
     private val properties: JellyfinIntegrationProperties,
 ) {
     @PostMapping("/sync")
-    fun syncFromPlugin(
+    fun pushSync(
         @RequestHeader(value = "X-MovieNight-Plugin-Token", required = false) token: String?,
         @Valid @RequestBody request: JellyfinSyncRequest,
     ): JellyfinSyncSummary {
         requireJellyfinIntegrationEnabled(properties)
         requireJellyfinPluginToken(properties, token)
-        return jellyfinSyncUseCase.syncFromPlugin(request.toCommand())
+        return jellyfinSyncUseCase.sync(request.toCommand())
     }
-
-    @PostMapping("/pull-sync")
-    fun pullSyncNow(): JellyfinSyncSummary = jellyfinSyncUseCase.syncNow()
 
     @GetMapping("/sync-state")
     fun syncState(

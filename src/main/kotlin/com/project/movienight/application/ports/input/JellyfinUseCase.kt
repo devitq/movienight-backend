@@ -1,5 +1,6 @@
 package com.project.movienight.application.ports.input
 
+import com.project.movienight.domain.model.ContentType
 import com.project.movienight.domain.model.JellyfinSyncState
 import com.project.movienight.domain.model.JellyfinSyncSummary
 import java.time.OffsetDateTime
@@ -19,28 +20,33 @@ data class HandleJellyfinEventCommand(
 )
 
 interface JellyfinSyncUseCase {
-    fun syncNow(): JellyfinSyncSummary
-
-    fun syncFromPlugin(command: JellyfinPluginSyncCommand): JellyfinSyncSummary
+    fun sync(command: PushJellyfinCatalogCommand): JellyfinSyncSummary
 
     fun getSyncStates(): List<JellyfinSyncState>
 }
 
-data class JellyfinPluginSyncCommand(
-    val items: List<JellyfinPluginSyncItem>,
+data class PushJellyfinCatalogCommand(
+    val items: List<PushedJellyfinItem>,
 )
 
-data class JellyfinPluginSyncItem(
+data class PushedJellyfinItem(
     val jellyfinItemId: String,
+    val jellyfinLibraryId: String?,
     val title: String,
     val description: String?,
-    val year: Int?,
+    val contentType: ContentType,
+    val releaseYear: Int?,
     val genres: List<String>,
+    val cast: List<String>,
+    val directors: List<String>,
+    val platformRating: Double?,
+    val imdbRating: Double?,
+    val externalUrl: String?,
     val imdbId: String?,
-    val userStates: List<JellyfinPluginUserState>,
+    val userStates: List<PushedJellyfinUserState>,
 )
 
-data class JellyfinPluginUserState(
+data class PushedJellyfinUserState(
     val jellyfinUserId: String,
     val isViewed: Boolean,
     val lastPlayedAt: OffsetDateTime?,

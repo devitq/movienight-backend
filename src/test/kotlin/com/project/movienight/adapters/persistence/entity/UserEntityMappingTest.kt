@@ -26,7 +26,6 @@ class UserEntityMappingTest {
         assertEquals(entity.id, user.id)
         assertEquals(entity.name, user.name)
         assertEquals(entity.email, user.email)
-        assertNull(user.library)
         assertNull(user.jellyfinUserId)
     }
 
@@ -37,7 +36,6 @@ class UserEntityMappingTest {
                 id = UUID.randomUUID(),
                 name = "Jane",
                 email = "jane@mail.com",
-                library = null,
             )
 
         val entity = user.toEntity(AuthProvider.YANDEX, "yandex456")
@@ -56,7 +54,6 @@ class UserEntityMappingTest {
                 id = UUID.randomUUID(),
                 name = "Bob",
                 email = "bob@mail.com",
-                library = null,
             )
 
         val entity = user.toEntity()
@@ -72,7 +69,6 @@ class UserEntityMappingTest {
                 id = UUID.randomUUID(),
                 name = "Alice",
                 email = "alice@email.com",
-                library = null,
             )
 
         val mapped = original.toEntity().toDomain()

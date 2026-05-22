@@ -9,7 +9,6 @@ import com.project.movienight.application.ports.input.RecommendationQuery
 import com.project.movienight.application.ports.input.RejectRecommendationCommand
 import com.project.movienight.application.ports.input.RejectRecommendationUseCase
 import com.project.movienight.config.JellyfinIntegrationProperties
-import com.project.movienight.domain.model.ContentType
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -40,7 +39,7 @@ class RecommendationController(
             .recommend(
                 RecommendationQuery(
                     userId = userId,
-                    contentType = contentType?.let { runCatching { ContentType.valueOf(it.uppercase()) }.getOrNull() },
+                    contentType = parseOptionalContentType(contentType),
                     mood = mood,
                     libraryOnly = libraryOnly,
                     limit = limit,

@@ -1,7 +1,5 @@
 package com.project.movienight.adapters.security
 
-import com.project.movienight.adapters.persistence.entity.toDomain
-import com.project.movienight.adapters.persistence.entity.toEntity
 import com.project.movienight.application.ports.input.security.OAuth2UserInfo
 import com.project.movienight.application.ports.output.IdGenerator
 import com.project.movienight.application.ports.output.UserRepositoryPort
@@ -59,12 +57,11 @@ class CustomOAuth2UserService(
 
             if (userByEmail != null) {
                 log.debug("Linking OAuth2 account to existing user: {}", userInfo.getEmail())
-                val entity =
-                    userByEmail.toEntity(
-                        provider = provider,
-                        providerId = userInfo.getProviderId(),
-                    )
-                userRepository.save(entity.toDomain())
+                userRepository.linkOAuthAccount(
+                    userId = userByEmail.id,
+                    provider = provider,
+                    providerId = userInfo.getProviderId(),
+                )
             } else {
                 log.debug("Creating new user for provider: {}", userInfo.getProvider())
                 val newUser =
@@ -72,14 +69,12 @@ class CustomOAuth2UserService(
                         id = idGenerator.generateId(),
                         name = userInfo.getName(),
                         email = userInfo.getEmail(),
-                        library = null,
                     )
-                val entity =
-                    newUser.toEntity(
-                        provider = provider,
-                        providerId = userInfo.getProviderId(),
-                    )
-                userRepository.save(entity.toDomain())
+                userRepository.createOAuthUser(
+                    user = newUser,
+                    provider = provider,
+                    providerId = userInfo.getProviderId(),
+                )
             }
         }
     }

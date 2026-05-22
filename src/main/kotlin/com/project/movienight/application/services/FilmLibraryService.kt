@@ -1,46 +1,34 @@
 package com.project.movienight.application.services
 
-import com.project.movienight.adapters.metrics.BusinessMetricsService
 import com.project.movienight.application.ports.input.AddFilmToLibraryCommand
-import com.project.movienight.application.ports.input.AddFilmToLibraryUseCase
-import com.project.movienight.application.ports.input.CreateFilmLibraryCommand
-import com.project.movienight.application.ports.input.CreateFilmLibraryUseCase
-import com.project.movienight.application.ports.input.GetFilmLibraryQuery
-import com.project.movienight.application.ports.input.GetFilmLibraryUseCase
-import com.project.movienight.application.ports.input.ListFilmLibraryEntriesUseCase
+import com.project.movienight.application.ports.input.FilmLibraryUseCase
 import com.project.movienight.application.ports.input.MarkFilmViewedCommand
-import com.project.movienight.application.ports.input.MarkFilmViewedUseCase
 import com.project.movienight.application.ports.input.RemoveFilmFromLibraryCommand
-import com.project.movienight.application.ports.input.RemoveFilmFromLibraryUseCase
-import com.project.movienight.application.ports.output.FilmLibraryRepositoryPort
+import com.project.movienight.application.ports.output.BusinessMetricsPort
+import com.project.movienight.application.ports.output.FilmLibraryEntryRepositoryPort
+import com.project.movienight.application.ports.output.FilmRepositoryPort
 import com.project.movienight.application.ports.output.IdGenerator
 import com.project.movienight.domain.exception.DomainException
 import com.project.movienight.domain.exception.EntityNotFoundException
-import com.project.movienight.domain.model.FilmLibrary
+import com.project.movienight.domain.model.Film
+import com.project.movienight.domain.model.FilmLibraryEntry
 import org.springframework.stereotype.Service
 import java.util.UUID
 
 @Service
 class FilmLibraryService(
-    private val filmLibraryRepository: FilmLibraryRepositoryPort,
+    private val filmLibraryEntryRepository: FilmLibraryEntryRepositoryPort,
+    private val filmRepository: FilmRepositoryPort,
     private val idGenerator: IdGenerator,
-    private val businessMetricsService: BusinessMetricsService,
-) : CreateFilmLibraryUseCase,
-    AddFilmToLibraryUseCase,
-    MarkFilmViewedUseCase,
-    RemoveFilmFromLibraryUseCase,
-    GetFilmLibraryUseCase,
-    ListFilmLibraryEntriesUseCase {
-    override fun create(command: CreateFilmLibraryCommand): FilmLibrary {
-        findByUserId(command.userId)?.let { return it }
-        throw EntityNotFoundException(entity = "Film library", id = command.userId.toString())
-    }
+    private val businessMetricsService: BusinessMetricsPort,
+) : FilmLibraryUseCase {
+    override fun addFilm(command: AddFilmToLibraryCommand): FilmLibraryEntry {
+        ensureFilmExists(command.filmId)
 
-    override fun addFilm(command: AddFilmToLibraryCommand): FilmLibrary {
-        val existingEntry = findByUserAndFilmId(command.userId, command.filmId)
+        val existingEntry = filmLibraryEntryRepository.findByUserIdAndFilmId(command.userId, command.filmId)
         if (existingEntry != null) {
             val saved =
-                filmLibraryRepository.save(
+                filmLibraryEntryRepository.save(
                     existingEntry.copy(
                         isViewed = false,
                         watchedAt = null,
@@ -51,8 +39,8 @@ class FilmLibraryService(
         }
 
         val saved =
-            filmLibraryRepository.save(
-                FilmLibrary(
+            filmLibraryEntryRepository.save(
+                FilmLibraryEntry(
                     id = idGenerator.generateId(),
                     userId = command.userId,
                     filmId = command.filmId,
@@ -65,33 +53,35 @@ class FilmLibraryService(
         return saved
     }
 
-    override fun removeFilm(command: RemoveFilmFromLibraryCommand): FilmLibrary {
-        val existingLibrary =
-            if (command.libraryId != null) {
-                filmLibraryRepository.findById(command.libraryId)
-                    ?: throw EntityNotFoundException(entity = "Film library", id = command.libraryId.toString())
+    override fun removeFilm(command: RemoveFilmFromLibraryCommand): FilmLibraryEntry {
+        val existingEntry =
+            if (command.entryId != null) {
+                filmLibraryEntryRepository.findById(command.entryId)
+                    ?: throw EntityNotFoundException(entity = "Film library entry", id = command.entryId.toString())
             } else {
-                findByUserAndFilmId(command.userId, command.filmId)
-                    ?: throw EntityNotFoundException(entity = "Film library", id = command.filmId.toString())
+                filmLibraryEntryRepository.findByUserIdAndFilmId(command.userId, command.filmId)
+                    ?: throw EntityNotFoundException(entity = "Film library entry", id = command.filmId.toString())
             }
 
-        if (existingLibrary.userId != command.userId || existingLibrary.filmId != command.filmId) {
+        if (existingEntry.userId != command.userId || existingEntry.filmId != command.filmId) {
             throw DomainException("Film with id ${command.filmId} not found in user's library")
         }
 
-        filmLibraryRepository.deleteById(existingLibrary.id)
+        filmLibraryEntryRepository.deleteById(existingEntry.id)
         businessMetricsService.recordLibraryEvent()
-        return existingLibrary
+        return existingEntry
     }
 
-    override fun markViewed(command: MarkFilmViewedCommand): FilmLibrary {
-        val existingEntry = findByUserAndFilmId(command.userId, command.filmId)
+    override fun markViewed(command: MarkFilmViewedCommand): FilmLibraryEntry {
+        ensureFilmExists(command.filmId)
+
+        val existingEntry = filmLibraryEntryRepository.findByUserIdAndFilmId(command.userId, command.filmId)
         val watchedAt = command.watchedAt ?: java.time.LocalDateTime.now()
 
         val saved =
             if (existingEntry == null) {
-                filmLibraryRepository.save(
-                    FilmLibrary(
+                filmLibraryEntryRepository.save(
+                    FilmLibraryEntry(
                         id = idGenerator.generateId(),
                         userId = command.userId,
                         filmId = command.filmId,
@@ -101,7 +91,7 @@ class FilmLibraryService(
                     ),
                 )
             } else {
-                filmLibraryRepository.save(
+                filmLibraryEntryRepository.save(
                     existingEntry.copy(
                         isViewed = true,
                         watchedAt = watchedAt,
@@ -112,17 +102,14 @@ class FilmLibraryService(
         return saved
     }
 
-    override fun getLibrary(query: GetFilmLibraryQuery): FilmLibrary =
-        findByUserId(query.userId)
-            ?: throw EntityNotFoundException(entity = "Film library", id = query.userId.toString())
+    override fun list(userId: UUID): List<FilmLibraryEntry> = filmLibraryEntryRepository.findByUserId(userId)
 
-    override fun list(userId: UUID): List<FilmLibrary> = filmLibraryRepository.findAll().filter { it.userId == userId }
+    override fun listAvailableFilms(userId: UUID): List<Film> {
+        val libraryFilmIds = list(userId).map { it.filmId }.toSet()
+        return filmRepository.findAll().filter { it.id !in libraryFilmIds }
+    }
 
-    private fun findByUserId(userId: UUID): FilmLibrary? =
-        filmLibraryRepository.findAll().firstOrNull { it.userId == userId }
-
-    private fun findByUserAndFilmId(
-        userId: UUID,
-        filmId: UUID,
-    ): FilmLibrary? = filmLibraryRepository.findAll().firstOrNull { it.userId == userId && it.filmId == filmId }
+    private fun ensureFilmExists(filmId: UUID) {
+        filmRepository.findById(filmId) ?: throw EntityNotFoundException(entity = "Film", id = filmId.toString())
+    }
 }

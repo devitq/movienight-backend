@@ -21,8 +21,15 @@ class SecurityConfiguration(
                     }.defaultSuccessUrl("/api/users/me", true)
             }.authorizeHttpRequests { auth ->
                 auth
-                    .requestMatchers("/", "/login/**", "/oauth2/**", "/h2-console/**", "/actuator/health")
-                    .permitAll()
+                    .requestMatchers(
+                        "/",
+                        "/login/**",
+                        "/oauth2/**",
+                        "/h2-console/**",
+                        "/actuator/health",
+                        "/actuator/health/**",
+                        "/actuator/prometheus",
+                    ).permitAll()
                     .requestMatchers("/api/v1/docs/**", "/api/v1/swagger-ui/**", "/swagger-ui/**")
                     .permitAll()
                     .requestMatchers(

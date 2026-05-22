@@ -41,6 +41,8 @@ dependencies {
     implementation(libs.flyway.database.postgresql)
     implementation(libs.kotlin.reflect)
 
+    implementation("net.logstash.logback:logstash-logback-encoder:8.0")
+
     implementation(libs.micrometer.tracing.bridge.otel)
     implementation(libs.opentelemetry.exporter.otlp)
     implementation(libs.sentry.spring.boot.starter)

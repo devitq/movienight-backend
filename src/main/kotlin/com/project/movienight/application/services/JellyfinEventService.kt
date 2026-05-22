@@ -12,6 +12,7 @@ import com.project.movienight.application.ports.output.JellyfinEventStorePort
 import com.project.movienight.application.ports.output.UserRepositoryPort
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.util.UUID
 
 @Service
 class JellyfinEventService(
@@ -26,6 +27,8 @@ class JellyfinEventService(
 
     @Transactional
     override fun handle(command: HandleJellyfinEventCommand) {
+        val jellyfinUserId = normalizeJellyfinId(command.jellyfinUserId)
+        val jellyfinItemId = normalizeJellyfinId(command.itemId)
         val payloadJson = command.payload?.let { objectMapper.writeValueAsString(it) }
         val inserted =
             jellyfinEventStore.save(
@@ -34,8 +37,8 @@ class JellyfinEventService(
                     serverId = command.serverId,
                     eventType = command.eventType,
                     occurredAt = command.occurredAt,
-                    jellyfinUserId = command.jellyfinUserId,
-                    jellyfinItemId = command.itemId,
+                    jellyfinUserId = jellyfinUserId,
+                    jellyfinItemId = jellyfinItemId,
                     payload = payloadJson,
                 ),
             )
@@ -45,13 +48,13 @@ class JellyfinEventService(
 
         try {
             if (playbackEventTypes.contains(command.eventType)) {
-                val localUser = userRepository.findByJellyfinUserId(command.jellyfinUserId)
+                val localUser = userRepository.findByJellyfinUserId(jellyfinUserId)
                 if (localUser == null) {
                     businessMetricsService.recordJellyfinUnmappedUser()
                     return
                 }
 
-                val film = filmRepository.findByJellyfinItemId(command.itemId)
+                val film = filmRepository.findByJellyfinItemId(jellyfinItemId)
                 if (film == null) {
                     businessMetricsService.recordBackendWriteFailure()
                     return
@@ -72,4 +75,8 @@ class JellyfinEventService(
             throw ex
         }
     }
+
+    private fun normalizeJellyfinId(value: String): String =
+        runCatching { UUID.fromString(value).toString().replace("-", "") }
+            .getOrDefault(value)
 }

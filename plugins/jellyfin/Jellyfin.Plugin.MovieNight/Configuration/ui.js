@@ -398,8 +398,14 @@
         if (!statusEl) return;
         try {
             const state = await ApiClient.getJSON(ApiClient.getUrl(`MovieNight/SyncState`));
-            if (state && state.lastSyncAt) {
-                statusEl.innerText = `Last sync: ${new Date(state.lastSyncAt).toLocaleString()}`;
+            const states = Array.isArray(state) ? state : [];
+            const latest = states
+                .map(s => s.lastSuccessfulSyncAt || s.lastSyncedAt)
+                .filter(Boolean)
+                .sort()
+                .pop();
+            if (latest) {
+                statusEl.innerText = `Last sync: ${new Date(latest).toLocaleString()}`;
             }
         } catch (err) { /* ignore */ }
     }

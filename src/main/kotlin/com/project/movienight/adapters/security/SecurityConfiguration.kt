@@ -24,9 +24,7 @@ class SecurityConfiguration(
                     .requestMatchers("/", "/login/**", "/oauth2/**", "/h2-console/**", "/actuator/health")
                     .permitAll()
                     .requestMatchers(
-                        "/api/integrations/jellyfin/events",
-                        "/api/integrations/jellyfin/sync",
-                        "/api/integrations/jellyfin/sync-state",
+                        "/api/integrations/jellyfin/**",
                     ).permitAll()
                     .requestMatchers("/api/users/me")
                     .authenticated()

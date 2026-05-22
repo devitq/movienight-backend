@@ -64,6 +64,11 @@ public class MovieNightSyncService
 
         var items = _libraryManager.GetItemList(query);
         var users = _userManager.Users;
+        var syncUsers = users.Select(u => new
+        {
+            jellyfinUserId = u.Id.ToString("N"),
+            name = u.Username
+        }).ToList();
         var syncItems = new List<object>();
 
         foreach (var item in items)
@@ -71,11 +76,12 @@ public class MovieNightSyncService
             if (item is not Movie movie) continue;
 
             var jellyfinItemId = movie.Id.ToString("N");
+            var title = string.IsNullOrWhiteSpace(movie.Name) ? jellyfinItemId : movie.Name;
 
             var itemData = new Dictionary<string, object?>
             {
                 ["jellyfinItemId"] = jellyfinItemId,
-                ["title"] = movie.Name,
+                ["title"] = title,
                 ["originalTitle"] = movie.OriginalTitle,
                 ["description"] = movie.Overview,
                 ["year"] = movie.ProductionYear,
@@ -99,7 +105,7 @@ public class MovieNightSyncService
             syncItems.Add(itemData);
         }
 
-        await _backendClient.SyncAsync(new { items = syncItems }, cancellationToken).ConfigureAwait(false);
+        await _backendClient.SyncAsync(new { users = syncUsers, items = syncItems }, cancellationToken).ConfigureAwait(false);
         _logger.LogInformation("MovieNight library sync completed");
     }
 }

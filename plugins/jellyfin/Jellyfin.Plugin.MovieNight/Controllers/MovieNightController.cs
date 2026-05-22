@@ -87,9 +87,10 @@ public class MovieNightController : ControllerBase
     /// <returns>Backend response.</returns>
     [HttpGet("SyncState")]
     [Authorize]
-    public async Task<ActionResult<string>> SyncState(CancellationToken cancellationToken)
+    public async Task<IActionResult> SyncState(CancellationToken cancellationToken)
     {
-        return await _backendClient.GetSyncStateAsync(cancellationToken).ConfigureAwait(false);
+        var body = await _backendClient.GetSyncStateAsync(cancellationToken).ConfigureAwait(false);
+        return Content(body, "application/json");
     }
 
     /// <summary>
@@ -97,14 +98,15 @@ public class MovieNightController : ControllerBase
     /// </summary>
     [HttpGet("Users/{userId}/Recommendations")]
     [Authorize]
-    public async Task<ActionResult<string>> GetRecommendations(
+    public async Task<IActionResult> GetRecommendations(
         [FromRoute] string userId,
         [FromQuery] string? contentType,
         [FromQuery] string? mood,
         [FromQuery] int limit = 10,
         CancellationToken cancellationToken = default)
     {
-        return await _backendClient.GetRecommendationsAsync(userId, contentType, mood, limit, cancellationToken).ConfigureAwait(false);
+        var body = await _backendClient.GetRecommendationsAsync(userId, contentType, mood, limit, cancellationToken).ConfigureAwait(false);
+        return Content(body, "application/json");
     }
 
     /// <summary>
@@ -142,11 +144,12 @@ public class MovieNightController : ControllerBase
     /// </summary>
     [HttpGet("Users/{userId}/Preferences")]
     [Authorize]
-    public async Task<ActionResult<string?>> GetPreferences(
+    public async Task<IActionResult> GetPreferences(
         [FromRoute] string userId,
         CancellationToken cancellationToken)
     {
-        return await _backendClient.GetPreferencesAsync(userId, cancellationToken).ConfigureAwait(false);
+        var body = await _backendClient.GetPreferencesAsync(userId, cancellationToken).ConfigureAwait(false);
+        return body is null ? NotFound() : Content(body, "application/json");
     }
 
     /// <summary>

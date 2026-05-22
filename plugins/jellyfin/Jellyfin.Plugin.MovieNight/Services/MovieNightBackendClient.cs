@@ -40,7 +40,7 @@ public class MovieNightBackendClient
     {
         var payload = new MovieNightEventPayload(
             EventId: $"plugin-test:{Guid.NewGuid():N}",
-            EventType: "playback.stopped",
+            EventType: "plugin.test",
             OccurredAt: DateTimeOffset.UtcNow,
             JellyfinUserId: "movienight-plugin-test-user",
             ItemId: "movienight-plugin-test-item",
@@ -95,11 +95,12 @@ public class MovieNightBackendClient
     /// </summary>
     public async Task<string> GetRecommendationsAsync(string userId, string? contentType, string? mood, int limit, CancellationToken cancellationToken)
     {
+        userId = NormalizeJellyfinId(userId);
         var query = $"?limit={limit}";
         if (!string.IsNullOrEmpty(contentType)) query += $"&contentType={Uri.EscapeDataString(contentType)}";
         if (!string.IsNullOrEmpty(mood)) query += $"&mood={Uri.EscapeDataString(mood)}";
 
-        var request = CreateRequest(HttpMethod.Get, $"/api/users/{userId}/recommendations{query}");
+        var request = CreateRequest(HttpMethod.Get, $"/api/integrations/jellyfin/users/{userId}/recommendations{query}");
         if (request is null) return "Plugin is not configured.";
 
         using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
@@ -113,7 +114,9 @@ public class MovieNightBackendClient
     /// </summary>
     public async Task PostRatingAsync(string userId, string filmId, int score, string? note, CancellationToken cancellationToken)
     {
-        var request = CreateRequest(HttpMethod.Post, $"/api/users/{userId}/ratings/films/{filmId}");
+        userId = NormalizeJellyfinId(userId);
+        filmId = NormalizeJellyfinId(filmId);
+        var request = CreateRequest(HttpMethod.Post, $"/api/integrations/jellyfin/users/{userId}/ratings/items/{filmId}");
         if (request is null) return;
 
         request.Content = JsonContent.Create(new { score, note }, options: JsonOptions);
@@ -126,7 +129,8 @@ public class MovieNightBackendClient
     /// </summary>
     public async Task<string> GetRatingsAsync(string userId, CancellationToken cancellationToken)
     {
-        var request = CreateRequest(HttpMethod.Get, $"/api/users/{userId}/ratings");
+        userId = NormalizeJellyfinId(userId);
+        var request = CreateRequest(HttpMethod.Get, $"/api/integrations/jellyfin/users/{userId}/ratings");
         if (request is null) return "[]";
 
         using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
@@ -140,7 +144,9 @@ public class MovieNightBackendClient
     /// </summary>
     public async Task MarkViewedAsync(string userId, string filmId, DateTimeOffset? watchedAt, CancellationToken cancellationToken)
     {
-        var request = CreateRequest(HttpMethod.Post, $"/api/users/{userId}/library/films/{filmId}/viewed");
+        userId = NormalizeJellyfinId(userId);
+        filmId = NormalizeJellyfinId(filmId);
+        var request = CreateRequest(HttpMethod.Post, $"/api/integrations/jellyfin/users/{userId}/library/items/{filmId}/viewed");
         if (request is null) return;
 
         request.Content = JsonContent.Create(new { watchedAt }, options: JsonOptions);
@@ -172,13 +178,15 @@ public class MovieNightBackendClient
     /// </summary>
     public async Task<string?> GetPreferencesAsync(string userId, CancellationToken cancellationToken)
     {
-        var request = CreateRequest(HttpMethod.Get, $"/api/users/{userId}/preferences");
+        userId = NormalizeJellyfinId(userId);
+        var request = CreateRequest(HttpMethod.Get, $"/api/integrations/jellyfin/users/{userId}/preferences");
         if (request is null) return null;
 
         using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound) return null;
 
         var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
         return body;
     }
 
@@ -187,7 +195,8 @@ public class MovieNightBackendClient
     /// </summary>
     public async Task CompleteOnboardingAsync(string userId, object payload, CancellationToken cancellationToken)
     {
-        var request = CreateRequest(HttpMethod.Post, $"/api/users/{userId}/recommendation-onboarding");
+        userId = NormalizeJellyfinId(userId);
+        var request = CreateRequest(HttpMethod.Post, $"/api/integrations/jellyfin/users/{userId}/recommendation-onboarding");
         if (request is null) return;
 
         request.Content = JsonContent.Create(payload, options: JsonOptions);
@@ -255,6 +264,11 @@ public class MovieNightBackendClient
     {
         var value = Plugin.Instance?.Configuration.BackendBaseUrl?.Trim();
         return string.IsNullOrWhiteSpace(value) ? null : value.TrimEnd('/');
+    }
+
+    private static string NormalizeJellyfinId(string value)
+    {
+        return Guid.TryParse(value, out var guid) ? guid.ToString("N") : value;
     }
 
     private static bool IsEnabled()

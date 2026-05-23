@@ -5,9 +5,19 @@
     </encoder>
   </appender>
 
-  <springProfile name="!file-logging">
+  <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
+  </appender>
+
+  <springProfile name="!file-logging &amp; !json-logging">
     <root level="INFO">
       <appender-ref ref="CONSOLE"/>
+    </root>
+  </springProfile>
+
+  <springProfile name="json-logging">
+    <root level="INFO">
+      <appender-ref ref="JSON_CONSOLE"/>
     </root>
   </springProfile>
 

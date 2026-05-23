@@ -1,0 +1,25 @@
+{{- if and .Values.observability.enabled .Values.observability.victoriaMetrics.enabled .Values.observability.victoriaMetrics.operator.enabled }}
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMSingle
+metadata:
+  name: {{ include "movienight.victoriaMetricsName" . }}
+  labels:
+    {{- include "movienight.componentLabels" (dict "root" . "component" "victoriametrics") | nindent 4 }}
+spec:
+  retentionPeriod: {{ .Values.observability.victoriaMetrics.retentionPeriod }}
+  {{- if .Values.observability.victoriaMetrics.persistence.enabled }}
+  storage:
+    accessModes:
+      - ReadWriteOnce
+    resources:
+      requests:
+        storage: {{ .Values.observability.victoriaMetrics.persistence.size }}
+    {{- with .Values.observability.victoriaMetrics.persistence.storageClass }}
+    storageClassName: {{ . | quote }}
+    {{- end }}
+  {{- end }}
+  {{- with .Values.observability.victoriaMetrics.resources }}
+  resources:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

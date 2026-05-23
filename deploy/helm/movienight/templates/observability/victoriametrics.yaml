@@ -1,4 +1,4 @@
-{{- if and .Values.observability.enabled .Values.observability.victoriaMetrics.enabled }}
+{{- if and .Values.observability.enabled .Values.observability.victoriaMetrics.enabled (not .Values.observability.victoriaMetrics.operator.enabled) }}
 {{- if .Values.observability.victoriaMetrics.persistence.enabled }}
 apiVersion: v1
 kind: PersistentVolumeClaim

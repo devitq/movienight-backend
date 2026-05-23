@@ -1,0 +1,20 @@
+{{- if and .Values.observability.enabled .Values.observability.victoriaMetrics.enabled .Values.observability.victoriaMetrics.operator.enabled }}
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMPodScrape
+metadata:
+  name: {{ include "movienight.fullname" . }}-backend
+  labels:
+    {{- include "movienight.componentLabels" (dict "root" . "component" "backend") | nindent 4 }}
+spec:
+  podMetricsEndpoints:
+    - port: management
+      path: /actuator/prometheus
+      {{- if .Values.observability.metrics.httpServerRequestsHistogram }}
+      relabelConfigs:
+        - targetLabel: application
+          replacement: {{ .Values.observability.metrics.applicationTag | quote }}
+      {{- end }}
+  selector:
+    matchLabels:
+      {{- include "movienight.componentSelectorLabels" (dict "root" . "component" "backend") | nindent 6 }}
+{{- end }}

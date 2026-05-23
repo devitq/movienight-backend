@@ -1,4 +1,4 @@
-{{- if and .Values.observability.enabled .Values.observability.vmagent.enabled }}
+{{- if and .Values.observability.enabled .Values.observability.vmagent.enabled (not .Values.observability.victoriaMetrics.operator.enabled) }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -19,13 +19,26 @@ data:
       {{- if .Values.backend.enabled }}
       - job_name: {{ .Values.observability.vmagent.backendJobName | quote }}
         metrics_path: /actuator/prometheus
-        static_configs:
-          - targets:
-              - {{ include "movienight.backendMetricsTarget" . | quote }}
-            labels:
-              app: {{ include "movienight.name" . | quote }}
-              release: {{ .Release.Name | quote }}
-              namespace: {{ .Release.Namespace | quote }}
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_component]
+            action: keep
+            regex: backend
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_instance]
+            action: keep
+            regex: {{ .Release.Name | quote }}
+          - source_labels: [__meta_kubernetes_pod_container_port_name]
+            action: keep
+            regex: management
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: pod
       {{- end }}
       - job_name: {{ printf "%s-vmagent" (include "movienight.name" .) | quote }}
         static_configs:

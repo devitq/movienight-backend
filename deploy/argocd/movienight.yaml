@@ -1,0 +1,62 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: movienight
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/devitq/movienight-backend.git
+    targetRevision: feat/setup-observability-in-k8s
+    path: deploy/helm/movienight
+    helm:
+      valuesObject:
+        postgres:
+          cluster:
+            enabled: true
+            database: movienight
+            owner: movienight
+            bootstrapSecretName: movienight-cnpg-bootstrap
+            storage:
+              size: 2Gi
+
+        backend:
+          image:
+            tag: pr-45
+            pullPolicy: Always
+          env:
+            - name: JELLYFIN_INTEGRATION_ENABLED
+              value: "true"
+          envFrom:
+            - secretRef:
+                name: movienight-backend
+
+        gateway:
+          enabled: true
+          className: cilium
+          listenerHostname: movienight.itqdev.xyz
+          hostnames:
+            - movienight.itqdev.xyz
+          https:
+            enabled: true
+            secretName: movienight-tls
+
+        observability:
+          enabled: true
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: movienight
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      enabled: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - ServerSideApply=true

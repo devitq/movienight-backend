@@ -121,59 +121,14 @@ routes:
     pathPrefix: /
 
 observability:
-  enabled: false
+  enabled: true
   metrics:
     applicationTag: movienight
     httpServerRequestsHistogram: true
-  jsonLogging: true
   victoriaMetrics:
-    enabled: true
+    url: "http://vmsingle-victoria-metrics-single.observability.svc:8428"
     operator:
-      enabled: false
-    image:
-      repository: docker.io/victoriametrics/victoria-metrics
-      tag: v1.134.0
-      pullPolicy: IfNotPresent
-    service:
-      type: ClusterIP
-      port: 8428
-    retentionPeriod: 30d
-    extraArgs: []
-    persistence:
       enabled: true
-      size: 10Gi
-      storageClass: ""
-    podAnnotations: {}
-    podLabels: {}
-    resources: {}
-    securityContext: {}
-    podSecurityContext: {}
-    nodeSelector: {}
-    tolerations: []
-    affinity: {}
-  vmagent:
-    enabled: true
-    image:
-      repository: docker.io/victoriametrics/vmagent
-      tag: v1.135.0
-      pullPolicy: IfNotPresent
-    service:
-      type: ClusterIP
-      port: 8429
-    scrapeInterval: 5s
-    scrapeTimeout: 5s
-    remoteWriteUrl: ""
-    backendJobName: movienight-backend
-    extraArgs: []
-    extraScrapeConfigs: []
-    podAnnotations: {}
-    podLabels: {}
-    resources: {}
-    securityContext: {}
-    podSecurityContext: {}
-    nodeSelector: {}
-    tolerations: []
-    affinity: {}
   grafana:
     datasource:
       enabled: true

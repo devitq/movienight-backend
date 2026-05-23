@@ -136,22 +136,6 @@ app.kubernetes.io/component: {{ $component }}
 {{- if .Values.observability.grafana.datasource.url -}}
 {{- .Values.observability.grafana.datasource.url -}}
 {{- else -}}
-{{- printf "http://%s.%s.svc:%v" (include "movienight.victoriaMetricsName" .) .Release.Namespace .Values.observability.victoriaMetrics.service.port -}}
-{{- end -}}
-{{- end -}}
-
-{{- define "movienight.vmagentRemoteWriteURL" -}}
-{{- if .Values.observability.vmagent.remoteWriteUrl -}}
-{{- .Values.observability.vmagent.remoteWriteUrl -}}
-{{- else -}}
-{{- printf "http://%s:%v/api/v1/write" (include "movienight.victoriaMetricsName" .) .Values.observability.victoriaMetrics.service.port -}}
-{{- end -}}
-{{- end -}}
-
-{{- define "movienight.backendMetricsTarget" -}}
-{{- if .Values.backend.management.enabled -}}
-{{- printf "%s-backend:%v" (include "movienight.fullname" .) .Values.backend.management.port -}}
-{{- else -}}
-{{- printf "%s-backend:%v" (include "movienight.fullname" .) .Values.backend.service.port -}}
+{{- .Values.observability.victoriaMetrics.url -}}
 {{- end -}}
 {{- end -}}

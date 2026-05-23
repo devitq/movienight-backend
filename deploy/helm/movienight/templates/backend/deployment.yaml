@@ -62,10 +62,6 @@ spec:
 {{- if .Values.observability.enabled }}
             - name: MANAGEMENT_METRICS_TAGS_APPLICATION
               value: {{ .Values.observability.metrics.applicationTag | quote }}
-{{- if .Values.observability.jsonLogging }}
-            - name: SPRING_PROFILES_ACTIVE
-              value: json-logging
-{{- end }}
 {{- end }}
 {{- if $postgresEnv }}
 {{- $postgresEnv | nindent 12 }}

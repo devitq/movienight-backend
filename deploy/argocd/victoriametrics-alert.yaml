@@ -1,0 +1,35 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: victoriametrics-alert
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://victoriametrics.github.io/helm-charts/
+    chart: victoria-metrics-alert
+    targetRevision: 0.12.0
+    helm:
+      releaseName: vmalert
+      valuesObject:
+        server:
+          datasource:
+            url: http://vmsingle-victoria-metrics-single.observability.svc:8428
+          notifier:
+            config: |
+              route:
+                group_by: ['alertname']
+                receiver: 'blackhole'
+              receivers:
+              - name: 'blackhole'
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - ServerSideApply=true

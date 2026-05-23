@@ -84,7 +84,7 @@ management:
       application: ${MANAGEMENT_METRICS_TAGS_APPLICATION:${spring.application.name}}
     distribution:
       percentiles-histogram:
-        http.server.requests: ${MANAGEMENT_METRICS_DISTRIBUTION_PERCENTILES_HISTOGRAM_HTTP_SERVER_REQUESTS:false}
+        http.server.requests: ${HTTP_SERVER_REQUESTS_HISTOGRAM_ENABLED:false}
   info:
     env:
       enabled: true

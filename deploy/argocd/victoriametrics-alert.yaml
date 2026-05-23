@@ -1,0 +1,67 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: victoriametrics-alert
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://victoriametrics.github.io/helm-charts/
+    chart: victoria-metrics-alert
+    targetRevision: 0.12.0
+    helm:
+      releaseName: vmalert
+      valuesObject:
+        server:
+          datasource:
+            url: http://vmsingle-victoria-metrics-single-server.observability.svc:8428
+          config:
+            alerts:
+              groups:
+                - name: movienight.rules
+                  rules:
+                    - alert: MovieNightBackendDown
+                      expr: avg(up{job="movienight-backend"}) < 1
+                      for: 2m
+                      labels:
+                        severity: critical
+                      annotations:
+                        summary: MovieNight backend is not fully available
+                        description: vmagent is scraping fewer healthy MovieNight backend targets than expected.
+                    - alert: MovieNightHigh5xxRatio
+                      expr: sum(rate(http_server_requests_seconds_count{job="movienight-backend",status=~"5..",uri!~"/actuator.*"}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count{job="movienight-backend",uri!~"/actuator.*"}[5m])), 0.001) > 0.05
+                      for: 5m
+                      labels:
+                        severity: warning
+                      annotations:
+                        summary: MovieNight backend 5xx ratio is high
+                        description: More than 5 percent of non-actuator HTTP requests are returning 5xx responses.
+                    - alert: MovieNightNoScrapeData
+                      expr: absent(up{job="movienight-backend"})
+                      for: 5m
+                      labels:
+                        severity: warning
+                      annotations:
+                        summary: MovieNight backend scrape data is missing
+                        description: VictoriaMetrics has no up metric for the movienight-backend scrape job.
+        alertmanager:
+          enabled: true
+          config:
+            route:
+              group_by: ['alertname']
+              receiver: blackhole
+            receivers:
+              - name: blackhole
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - ServerSideApply=true

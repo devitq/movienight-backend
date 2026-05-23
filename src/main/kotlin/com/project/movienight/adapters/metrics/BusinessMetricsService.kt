@@ -26,7 +26,7 @@ class BusinessMetricsService(
     private val jellyfinSyncedItems: Counter = meterRegistry.counter("business_jellyfin_synced_items_total")
     private val jellyfinSyncDuration: Timer =
         Timer
-            .builder("business_jellyfin_sync_duration_seconds")
+            .builder("business_jellyfin_sync_duration")
             .publishPercentileHistogram()
             .register(meterRegistry)
     private val jellyfinSyncFailures: Counter = meterRegistry.counter("business_jellyfin_sync_failures_total")

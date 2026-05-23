@@ -123,3 +123,19 @@ app.kubernetes.io/component: {{ $component }}
       key: password
 {{- end -}}
 {{- end -}}
+
+{{- define "movienight.victoriaMetricsName" -}}
+{{- printf "%s-victoriametrics" (include "movienight.fullname" .) | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{- define "movienight.vmagentName" -}}
+{{- printf "%s-vmagent" (include "movienight.fullname" .) | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{- define "movienight.victoriaMetricsURL" -}}
+{{- if .Values.observability.grafana.datasource.url -}}
+{{- .Values.observability.grafana.datasource.url -}}
+{{- else -}}
+{{- .Values.observability.victoriaMetrics.url -}}
+{{- end -}}
+{{- end -}}

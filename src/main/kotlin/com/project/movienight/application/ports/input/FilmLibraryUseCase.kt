@@ -1,19 +1,20 @@
 package com.project.movienight.application.ports.input
 
-import com.project.movienight.domain.model.FilmLibrary
+import com.project.movienight.domain.model.Film
+import com.project.movienight.domain.model.FilmLibraryEntry
+import java.time.LocalDateTime
 import java.util.UUID
 
-interface CreateFilmLibraryUseCase {
-    fun create(command: CreateFilmLibraryCommand): FilmLibrary
-}
+interface FilmLibraryUseCase {
+    fun addFilm(command: AddFilmToLibraryCommand): FilmLibraryEntry
 
-data class CreateFilmLibraryCommand(
-    val userId: UUID,
-    val name: String = "Мои фильмы",
-)
+    fun markViewed(command: MarkFilmViewedCommand): FilmLibraryEntry
 
-interface AddFilmToLibraryUseCase {
-    fun addFilm(command: AddFilmToLibraryCommand): FilmLibrary
+    fun removeFilm(command: RemoveFilmFromLibraryCommand): FilmLibraryEntry
+
+    fun list(userId: UUID): List<FilmLibraryEntry>
+
+    fun listAvailableFilms(userId: UUID): List<Film>
 }
 
 data class AddFilmToLibraryCommand(
@@ -21,20 +22,14 @@ data class AddFilmToLibraryCommand(
     val filmId: UUID,
 )
 
-interface RemoveFilmFromLibraryUseCase {
-    fun removeFilm(command: RemoveFilmFromLibraryCommand): FilmLibrary
-}
+data class MarkFilmViewedCommand(
+    val userId: UUID,
+    val filmId: UUID,
+    val watchedAt: LocalDateTime? = null,
+)
 
 data class RemoveFilmFromLibraryCommand(
     val userId: UUID,
     val filmId: UUID,
-    val libraryId: UUID? = null,
-)
-
-interface GetFilmLibraryUseCase {
-    fun getLibrary(query: GetFilmLibraryQuery): FilmLibrary
-}
-
-data class GetFilmLibraryQuery(
-    val userId: UUID,
+    val entryId: UUID? = null,
 )

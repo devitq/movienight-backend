@@ -3,8 +3,19 @@ package com.project.movienight.application.ports.input
 import com.project.movienight.domain.model.User
 import java.util.UUID
 
-interface CreateUserUseCase {
+interface UserUseCase {
     fun create(command: CreateUserCommand): User
+
+    fun edit(
+        id: UUID,
+        command: EditUserCommand,
+    ): User
+
+    fun delete(id: UUID)
+
+    fun getById(id: UUID): User
+
+    fun getAll(): List<User>
 }
 
 data class CreateUserCommand(
@@ -12,17 +23,7 @@ data class CreateUserCommand(
     val email: String,
 )
 
-interface EditUserUseCase {
-    fun edit(
-        id: UUID,
-        command: EditUserCommand,
-    ): User
-}
-
 data class EditUserCommand(
     val name: String,
+    val jellyfinUserId: String? = null,
 )
-
-interface DeleteUserUseCase {
-    fun delete(id: UUID)
-}

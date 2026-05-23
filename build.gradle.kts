@@ -15,6 +15,8 @@ plugins {
     jacoco
 }
 
+apply(plugin = "org.springframework.boot.aot")
+
 apply(from = "$rootDir/gradle/docker.gradle.kts")
 
 group = "com.project"
@@ -28,11 +30,11 @@ java {
 
 dependencies {
     implementation(platform(libs.sentry.bom))
-    implementation(platform(libs.spring.grpc.bom))
 
     implementation(libs.spring.boot.starter.web)
     implementation(libs.spring.boot.starter.actuator)
-//    implementation(libs.spring.boot.starter.security)
+    implementation(libs.spring.boot.starter.aop)
+    implementation(libs.spring.boot.starter.security)
     implementation(libs.spring.boot.starter.cache)
     implementation(libs.spring.boot.starter.data.jdbc)
     implementation(libs.spring.boot.starter.validation)
@@ -40,12 +42,13 @@ dependencies {
     implementation(libs.flyway.database.postgresql)
     implementation(libs.kotlin.reflect)
 
+    implementation("net.logstash.logback:logstash-logback-encoder:8.0")
+
     implementation(libs.micrometer.tracing.bridge.otel)
     implementation(libs.opentelemetry.exporter.otlp)
     implementation(libs.sentry.spring.boot.starter)
 
-    implementation(libs.spring.grpc.starter)
-    implementation(libs.grpc.services)
+    implementation(libs.spring.boot.starter.oauth2.client)
 
     runtimeOnly(libs.micrometer.registry.prometheus)
     runtimeOnly(libs.h2)
@@ -55,7 +58,7 @@ dependencies {
 
     testImplementation(libs.spring.boot.starter.test)
     testImplementation(libs.kotlin.test.junit5)
-    testImplementation(libs.spring.grpc.test)
+    testImplementation(libs.mockk)
     testRuntimeOnly(libs.junit.platform.launcher)
 }
 

@@ -1,0 +1,25 @@
+MovieNight backend has been deployed.
+
+Backend:
+  Service: {{ include "movienight.fullname" . }}-backend
+  Port: {{ .Values.backend.service.port }}
+
+Postgres:
+{{- if .Values.postgres.url }}
+  Using explicit SPRING_DATASOURCE_URL.
+{{- else if .Values.postgres.existingSecret.name }}
+  Using secret {{ .Values.postgres.existingSecret.name }}.
+{{- else if .Values.postgres.cluster.enabled }}
+  CNPG Cluster: {{ include "movienight.postgresClusterName" . }}
+  JDBC URL: {{ include "movienight.postgresJdbcUrl" . }}
+{{- else }}
+  No Postgres values provided. The app will fall back to its embedded H2 defaults.
+{{- end }}
+
+Gateway:
+{{- if .Values.gateway.enabled }}
+  Gateway: {{ include "movienight.gatewayName" . }}
+  GatewayClass: {{ .Values.gateway.className }}
+{{- else }}
+  Disabled.
+{{- end }}

@@ -1,10 +1,8 @@
 package com.project.movienight.application.services
 
 import com.project.movienight.application.ports.input.CreateUserCommand
-import com.project.movienight.application.ports.input.CreateUserUseCase
-import com.project.movienight.application.ports.input.DeleteUserUseCase
 import com.project.movienight.application.ports.input.EditUserCommand
-import com.project.movienight.application.ports.input.EditUserUseCase
+import com.project.movienight.application.ports.input.UserUseCase
 import com.project.movienight.application.ports.output.IdGenerator
 import com.project.movienight.application.ports.output.UserRepositoryPort
 import com.project.movienight.config.UserServiceProperties
@@ -19,9 +17,7 @@ class UserService(
     private val userRepository: UserRepositoryPort,
     private val idGenerator: IdGenerator,
     private val userConfig: UserServiceProperties,
-) : CreateUserUseCase,
-    EditUserUseCase,
-    DeleteUserUseCase {
+) : UserUseCase {
     override fun create(command: CreateUserCommand): User {
         if (userConfig.isBlocked(command.name)) {
             throw BlockedValueException(target = "User", field = "name")
@@ -32,7 +28,7 @@ class UserService(
                 id = idGenerator.generateId(),
                 name = command.name,
                 email = command.email,
-                library = null,
+                jellyfinUserId = null,
             )
         return userRepository.save(user)
     }
@@ -47,14 +43,22 @@ class UserService(
 
         var user = userRepository.findById(id) ?: throw EntityNotFoundException(entity = "User", id = id.toString())
 
-        user = user.copy(name = command.name)
+        user =
+            user.copy(
+                name = command.name,
+                jellyfinUserId = command.jellyfinUserId ?: user.jellyfinUserId,
+            )
 
         return userRepository.save(user)
     }
 
     override fun delete(id: UUID) {
         userRepository.findById(id) ?: throw EntityNotFoundException(entity = "User", id = id.toString())
-
         userRepository.deleteById(id)
     }
+
+    override fun getById(id: UUID): User =
+        userRepository.findById(id) ?: throw EntityNotFoundException(entity = "User", id = id.toString())
+
+    override fun getAll(): List<User> = userRepository.findAll()
 }

@@ -1,0 +1,86 @@
+name: CI
+run-name: "${{ github.ref_name }} - ${{ github.event_name }} by @${{ github.actor }}"
+
+on:
+  push:
+    branches: [develop, main]
+    tags: ["v*"]
+  pull_request:
+    branches: [develop, main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  trufflehog:
+    name: TruffleHog Secret Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Run TruffleHog
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --results=verified,unknown
+
+  build:
+    name: Build & Test
+    needs: [trufflehog]
+    uses: ./.github/workflows/build.yaml
+
+  docker:
+    name: Docker
+    needs: build
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+    uses: ./.github/workflows/docker.yaml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      push: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') || github.event.pull_request.base.ref == 'main' || github.event.pull_request.base.ref == 'develop' }}
+    secrets: inherit
+
+  notify-main:
+    name: Notify Main Build
+    needs: docker
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Send Telegram notification
+        env:
+          TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          DIGEST: ${{ needs.docker.outputs.image-digest }}
+        run: |
+          COMMIT_URL="https://github.com/${REPO}/commit/${SHA}"
+          MSG="*${REPO}* - main branch CI succeeded"
+          MSG="${MSG}%0A🔗 [Commit](${COMMIT_URL})"
+          if [ -n "${DIGEST}" ]; then
+            MSG="${MSG}%0AImage: \`ghcr.io/${REPO}@${DIGEST}\`"
+          fi
+          curl -sf -X POST \
+            "https://api.telegram.org/bot${TOKEN}/sendMessage" \
+            -d "chat_id=${CHAT_ID}" \
+            -d "parse_mode=Markdown" \
+            -d "text=${MSG}"
+
+  release:
+    name: Release
+    needs: docker
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    uses: ./.github/workflows/release.yaml
+    with:
+      version: ${{ github.ref_name }}
+      image-digest: ${{ needs.docker.outputs.image-digest }}
+    secrets: inherit

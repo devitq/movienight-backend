@@ -26,13 +26,7 @@ RUN --mount=type=cache,target=${GRADLE_USER_HOME} \
 COPY src src
 
 RUN --mount=type=cache,target=${GRADLE_USER_HOME} \
-    ./gradlew --no-daemon build \
-      -x test \
-      -x detekt \
-      -x ktlintCheck \
-      -x ktlintKotlinScriptCheck \
-      -x ktlintMainSourceSetCheck \
-      -x ktlintTestSourceSetCheck
+    ./gradlew --no-daemon bootJar
 
 RUN mkdir -p ${APP_HOME}/dist \
     && cp ${APP_HOME}/build/libs/*.jar ${APP_HOME}/dist/${JAR_NAME} \
@@ -60,6 +54,7 @@ COPY --from=builder --chown=app:app /workspace/dist/app.jar /app/app.jar
 USER app
 
 ENV JAVA_OPTS="-Xms256m -Xmx512m -XX:+UseG1GC" \
+    SPRING_AOT_ENABLED=true \
     SERVER_PORT=8080 \
     PATH="/app:$PATH"
 
@@ -70,4 +65,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=30s --retries=3 \
 
 STOPSIGNAL SIGTERM
 
-ENTRYPOINT ["sh", "-c", "exec java ${JAVA_OPTS} -Dserver.port=${SERVER_PORT} -jar /app/app.jar"]
+ENTRYPOINT ["sh", "-c", "exec java ${JAVA_OPTS} -Dspring.aot.enabled=${SPRING_AOT_ENABLED} -Dserver.port=${SERVER_PORT} -jar /app/app.jar"]

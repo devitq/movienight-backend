@@ -1,0 +1,36 @@
+{{- if .Values.postgres.cluster.enabled }}
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ include "movienight.postgresClusterName" . }}
+  labels:
+    {{- include "movienight.componentLabels" (dict "root" . "component" "postgres") | nindent 4 }}
+    {{- with .Values.postgres.cluster.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- if or .Values.global.annotations .Values.postgres.cluster.annotations }}
+  annotations:
+    {{- with .Values.global.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- with .Values.postgres.cluster.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- end }}
+spec:
+  instances: {{ .Values.postgres.cluster.instances }}
+  storage:
+    size: {{ .Values.postgres.cluster.storage.size | quote }}
+    {{- if .Values.postgres.cluster.storage.storageClass }}
+    storageClass: {{ .Values.postgres.cluster.storage.storageClass | quote }}
+    {{- end }}
+  bootstrap:
+    initdb:
+      database: {{ .Values.postgres.cluster.database | quote }}
+      owner: {{ .Values.postgres.cluster.owner | quote }}
+      secret:
+        name: {{ required "postgres.cluster.bootstrapSecretName is required when postgres.cluster.enabled=true" .Values.postgres.cluster.bootstrapSecretName }}
+  {{- with .Values.postgres.cluster.extraSpec }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+{{- end }}

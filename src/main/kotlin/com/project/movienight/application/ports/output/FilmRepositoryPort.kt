@@ -8,7 +8,11 @@ interface FilmRepositoryPort {
 
     fun findById(id: UUID): Film?
 
+    fun findByJellyfinItemId(jellyfinItemId: String): Film?
+
     fun findAll(): List<Film>
+
+    fun findByTitle(title: String): Film?
 
     fun deleteById(id: UUID)
 }

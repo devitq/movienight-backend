@@ -1,0 +1,54 @@
+name: Jellyfin Plugin
+run-name: "${{ github.ref_name }} - ${{ github.event_name }} by @${{ github.actor }}"
+
+on:
+  push:
+    branches: [develop, main]
+    tags: ["v*"]
+    paths:
+      - ".github/workflows/jellyfin-plugin.yaml"
+      - "plugins/jellyfin/**"
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - ".github/workflows/jellyfin-plugin.yaml"
+      - "plugins/jellyfin/**"
+
+concurrency:
+  group: jellyfin-plugin-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Jellyfin Plugin
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      - name: Set up .NET 9
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Restore plugin dependencies
+        run: dotnet restore plugins/jellyfin/Jellyfin.Plugin.MovieNight/Jellyfin.Plugin.MovieNight.csproj
+
+      - name: Publish plugin
+        run: |
+          dotnet publish \
+            plugins/jellyfin/Jellyfin.Plugin.MovieNight/Jellyfin.Plugin.MovieNight.csproj \
+            -c Release \
+            --no-restore \
+            -o artifacts/MovieNight
+
+      - name: Upload plugin artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: MovieNight
+          path: artifacts/MovieNight/*
+          retention-days: 7
+          if-no-files-found: error

@@ -58,9 +58,12 @@ spring:
             user-name-attribute: response
 
 server:
+  port: ${SERVER_PORT:8080}
   shutdown: graceful
 
 management:
+  server:
+    port: ${MANAGEMENT_SERVER_PORT:8081}
   endpoints:
     web:
       base-path: /actuator
@@ -76,6 +79,12 @@ management:
       enabled: true
     readinessstate:
       enabled: true
+  metrics:
+    tags:
+      application: ${MANAGEMENT_METRICS_TAGS_APPLICATION:${spring.application.name}}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: ${MANAGEMENT_METRICS_DISTRIBUTION_PERCENTILES_HISTOGRAM_HTTP_SERVER_REQUESTS:false}
   info:
     env:
       enabled: true

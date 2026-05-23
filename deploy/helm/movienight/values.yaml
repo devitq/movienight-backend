@@ -93,10 +93,10 @@ backend:
     httpGet:
       path: /actuator/health
       port: management
-    initialDelaySeconds: 5
+    initialDelaySeconds: 10
     periodSeconds: 5
     timeoutSeconds: 5
-    failureThreshold: 24
+    failureThreshold: 12
 
 gateway:
   enabled: false
@@ -121,56 +121,17 @@ routes:
     pathPrefix: /
 
 observability:
-  enabled: false
+  enabled: true
   metrics:
     applicationTag: movienight
     httpServerRequestsHistogram: true
-  victoriaMetrics:
-    enabled: true
-    image:
-      repository: docker.io/victoriametrics/victoria-metrics
-      tag: v1.134.0
-      pullPolicy: IfNotPresent
-    service:
-      type: ClusterIP
-      port: 8428
-    retentionPeriod: 30d
-    extraArgs: []
-    persistence:
-      enabled: true
-      size: 10Gi
-      storageClass: ""
-    podAnnotations: {}
-    podLabels: {}
-    resources: {}
-    securityContext: {}
-    podSecurityContext: {}
-    nodeSelector: {}
-    tolerations: []
-    affinity: {}
   vmagent:
-    enabled: true
-    image:
-      repository: docker.io/victoriametrics/vmagent
-      tag: v1.135.0
-      pullPolicy: IfNotPresent
-    service:
-      type: ClusterIP
-      port: 8429
-    scrapeInterval: 5s
-    scrapeTimeout: 5s
-    remoteWriteUrl: ""
+    scrapeInterval: 10s
     backendJobName: movienight-backend
-    extraArgs: []
-    extraScrapeConfigs: []
-    podAnnotations: {}
-    podLabels: {}
-    resources: {}
-    securityContext: {}
-    podSecurityContext: {}
-    nodeSelector: {}
-    tolerations: []
-    affinity: {}
+  victoriaMetrics:
+    url: "http://vmsingle-victoria-metrics-single-server.observability.svc:8428"
+    operator:
+      enabled: true
   grafana:
     datasource:
       enabled: true

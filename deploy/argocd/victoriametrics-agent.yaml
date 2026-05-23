@@ -12,10 +12,11 @@ spec:
     helm:
       releaseName: vmagent
       valuesObject:
-        remoteWrite:
-          - url: http://vmsingle-victoria-metrics-single.observability.svc:8428/api/v1/write
+        remoteWriteUrls:
+          - http://vmsingle-victoria-metrics-single-server.observability.svc:8428/api/v1/write
         config:
-          scrape_interval: 10s
+          global:
+            scrape_interval: 10s
           scrape_configs:
             - job_name: 'movienight-backend'
               metrics_path: /actuator/prometheus
@@ -25,6 +26,12 @@ spec:
                 - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_component]
                   action: keep
                   regex: backend
+                - source_labels: [__meta_kubernetes_namespace]
+                  action: keep
+                  regex: movienight
+                - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_instance]
+                  action: keep
+                  regex: movienight
                 - source_labels: [__meta_kubernetes_pod_container_port_name]
                   action: keep
                   regex: management

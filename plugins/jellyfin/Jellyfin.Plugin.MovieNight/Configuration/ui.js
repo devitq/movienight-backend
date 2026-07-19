@@ -205,6 +205,66 @@
                 box-sizing: border-box;
                 width: 100%;
             }
+            .movieNightOnboardingDialog {
+                display: flex;
+                flex-direction: column;
+                max-height: min(820px, calc(100vh - 2em));
+                width: min(720px, calc(100vw - 2em));
+            }
+            .movieNightOnboardingDialog .dialog-content {
+                overflow-y: auto;
+                padding-right: .25em;
+            }
+            .movieNightOnboardingGrid {
+                display: grid;
+                gap: 1em;
+                grid-template-columns: 1fr 1fr;
+            }
+            .movieNightOnboardingWide {
+                grid-column: 1 / -1;
+            }
+            .movieNightChipGroup {
+                display: flex;
+                flex-wrap: wrap;
+                gap: .5em;
+            }
+            .movieNightChip {
+                background: rgba(255,255,255,.045);
+                border: var(--defaultLighterBorder, 1px solid rgba(255,255,255,.18));
+                border-radius: 999px;
+                color: var(--textColor, #fff);
+                cursor: pointer;
+                font-size: .9em;
+                line-height: 1.2;
+                padding: .45em .85em;
+                transition: background-color .16s ease, border-color .16s ease;
+                user-select: none;
+            }
+            .movieNightChip:hover,
+            .movieNightChip:focus {
+                border-color: var(--uiAccentColor, #00a4dc);
+                outline: none;
+            }
+            .movieNightChip.is-selected {
+                background: var(--uiAccentColor, #0064d2);
+                border-color: var(--uiAccentColor, #0064d2);
+                color: #fff;
+            }
+            .movieNightSelect,
+            .movieNightTextarea {
+                background: rgba(0,0,0,.18);
+                border: var(--defaultLighterBorder, 1px solid rgba(255,255,255,.22));
+                border-radius: var(--smallRadius, 8px);
+                box-sizing: border-box;
+                color: var(--textColor, #fff);
+                min-height: 2.7em;
+                padding: .55em .7em;
+                width: 100%;
+            }
+            .movieNightTextarea {
+                min-height: 5.5em;
+                resize: vertical;
+            }
             @media (max-width: 42em) {
                 .movieNightRecommendation {
                     grid-template-columns: 56px minmax(0, 1fr);
@@ -230,6 +290,9 @@
                 .movieNightFieldRow {
                     grid-template-columns: 1fr;
                     gap: 0;
+                }
+                .movieNightOnboardingGrid {
+                    grid-template-columns: 1fr;
                 }
             }
         `;
@@ -470,54 +533,108 @@
 
     async function showOnboardingDialog() {
         const overlay = createOverlay();
-        const dialog = createDialogBase('Welcome to MovieNight!');
-        dialog.style.minWidth = '450px';
+        const dialog = createDialogBase('Welcome to MovieNight');
+        dialog.classList.add('movieNightOnboardingDialog');
+        dialog.style.minWidth = '0';
         const content = dialog.querySelector('.dialog-content');
         const footer = dialog.querySelector('.dialog-footer');
 
         content.innerHTML = `
-            <p style="margin-bottom:1.5em; opacity:0.8; text-align:center;">Pick your preferences to get better recommendations.</p>
-            <div style="margin-bottom:1.5em;">
-                <label style="display:block; margin-bottom:0.6em; font-weight:600;">Favorite Genres</label>
-                <div class="genre-chips" style="display:flex; flex-wrap:wrap; gap:0.5em;"></div>
-            </div>
-            <div style="margin-bottom:1.5em;">
-                <label style="display:block; margin-bottom:0.6em; font-weight:600;">Preferred Eras</label>
-                <div class="era-chips" style="display:flex; flex-wrap:wrap; gap:0.5em;"></div>
-            </div>
-            <div>
-                <label style="display:block; margin-bottom:0.6em; font-weight:600;">Content Types</label>
-                <div class="type-chips" style="display:flex; flex-wrap:wrap; gap:0.5em;"></div>
+            <div class="movieNightOnboardingGrid">
+                <div class="movieNightField">
+                    <label>Favorite genres</label>
+                    <div class="movieNightChipGroup genre-chips"></div>
+                </div>
+                <div class="movieNightField">
+                    <label>Preferred eras</label>
+                    <div class="movieNightChipGroup era-chips"></div>
+                </div>
+                <div class="movieNightField movieNightOnboardingWide">
+                    <label>Plot types</label>
+                    <div class="movieNightChipGroup plot-chips"></div>
+                    <textarea class="movieNightTextarea plot-input" placeholder="heist, mystery, road trip"></textarea>
+                </div>
+                <div class="movieNightField">
+                    <label>Moods</label>
+                    <div class="movieNightChipGroup mood-chips"></div>
+                </div>
+                <div class="movieNightField">
+                    <label>Content types</label>
+                    <div class="movieNightChipGroup type-chips"></div>
+                </div>
+                <div class="movieNightField movieNightOnboardingWide">
+                    <label>Actors and directors</label>
+                    <textarea class="movieNightTextarea people-input" placeholder="Christopher Nolan, Denis Villeneuve, Florence Pugh"></textarea>
+                </div>
+                <div class="movieNightField movieNightOnboardingWide">
+                    <label>Recommendation style</label>
+                    <select class="movieNightSelect recommendation-style">
+                        <option value="BALANCED">Balanced</option>
+                        <option value="QUALITY_FIRST">Quality first</option>
+                        <option value="MOOD_FIRST">Mood first</option>
+                        <option value="DISCOVERY">Discovery</option>
+                        <option value="SIMILAR_TO_FAVORITES">Similar to favorites</option>
+                    </select>
+                </div>
             </div>
         `;
 
-        const genres = ["Action", "Comedy", "Drama", "Sci-Fi", "Horror", "Thriller", "Animation", "Documentary"];
-        const eras = ["1980s", "1990s", "2000s", "2010s", "2020s"];
-        const types = ["FILM", "SERIES"];
+        const genres = [
+            "Action",
+            "Adventure",
+            "Animation",
+            "Comedy",
+            "Crime",
+            "Documentary",
+            "Drama",
+            "Fantasy",
+            "Horror",
+            "Mystery",
+            "Romance",
+            "Sci-Fi",
+            "Thriller"
+        ];
+        const eras = ["1970s", "1980s", "1990s", "2000s", "2010s", "2020s"];
+        const plotTypes = [
+            "coming of age",
+            "crime investigation",
+            "family drama",
+            "heist",
+            "mind bending",
+            "political intrigue",
+            "quest",
+            "road trip",
+            "space adventure",
+            "survival"
+        ];
+        const moods = [
+            { label: "Tense", value: "tense" },
+            { label: "Slow burn", value: "slow-burn" },
+            { label: "Feel good", value: "feel-good" },
+            { label: "Dark", value: "dark" },
+            { label: "Romantic", value: "romantic" },
+            { label: "Focused", value: "focused" }
+        ];
+        const types = [
+            { label: "Movies", value: "FILM" },
+            { label: "Series", value: "SERIES" },
+            { label: "Episodes", value: "EPISODE" },
+            { label: "Other", value: "OTHER" }
+        ];
 
-        const selections = { genres: new Set(), eras: new Set(), types: new Set() };
-
-        const createChip = (text, container, type) => {
-            const chip = document.createElement('div');
-            chip.innerText = text;
-            chip.style.cssText = 'padding:0.4em 1em; border-radius:2em; border:1px solid #444; cursor:pointer; font-size:0.9em; transition:all 0.2s;';
-            chip.onclick = () => {
-                if (selections[type].has(text)) {
-                    selections[type].delete(text);
-                    chip.style.backgroundColor = 'transparent';
-                    chip.style.borderColor = '#444';
-                } else {
-                    selections[type].add(text);
-                    chip.style.backgroundColor = '#0064d2';
-                    chip.style.borderColor = '#0064d2';
-                }
-            };
-            container.appendChild(chip);
+        const selections = {
+            genres: new Set(),
+            eras: new Set(),
+            plotTypes: new Set(),
+            moods: new Set(),
+            types: new Set(["FILM"])
         };
 
-        genres.forEach(g => createChip(g, content.querySelector('.genre-chips'), 'genres'));
-        eras.forEach(e => createChip(e, content.querySelector('.era-chips'), 'eras'));
-        types.forEach(t => createChip(t, content.querySelector('.type-chips'), 'types'));
+        genres.forEach((genre) => createOnboardingChip(genre, content.querySelector('.genre-chips'), selections.genres));
+        eras.forEach((era) => createOnboardingChip(era, content.querySelector('.era-chips'), selections.eras));
+        plotTypes.forEach((plotType) => createOnboardingChip(plotType, content.querySelector('.plot-chips'), selections.plotTypes));
+        moods.forEach((mood) => createOnboardingChip(mood, content.querySelector('.mood-chips'), selections.moods));
+        types.forEach((type) => createOnboardingChip(type, content.querySelector('.type-chips'), selections.types));
 
         const btnSave = document.createElement('button');
         btnSave.className = 'emby-button raised button-submit';
@@ -529,10 +646,20 @@
         const cleanup = () => { if (overlay.parentNode) document.body.removeChild(overlay); };
 
         btnSave.onclick = async () => {
+            const customPlotTypes = splitOnboardingList(content.querySelector('.plot-input').value);
+            const people = splitOnboardingList(content.querySelector('.people-input').value);
             const payload = {
                 weightedGenres: Object.fromEntries([...selections.genres].map(g => [g, 5])),
+                plotTypes: uniqueValues([...selections.plotTypes, ...customPlotTypes]),
                 eras: [...selections.eras],
-                contentTypes: [...selections.types]
+                castAndDirectors: people,
+                moods: [...selections.moods],
+                contentTypes: [...selections.types],
+                likedFilmIds: [],
+                dislikedFilmIds: [],
+                libraryFilmIds: [],
+                watchedFilmIds: [],
+                recommendationStyle: content.querySelector('.recommendation-style').value
             };
             cleanup();
             await completeOnboarding(payload);
@@ -544,6 +671,39 @@
         document.body.appendChild(overlay);
     }
 
+    function createOnboardingChip(option, container, selections) {
+        const normalized = typeof option === 'string' ? { label: option, value: option } : option;
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'movieNightChip';
+        chip.textContent = normalized.label;
+        chip.setAttribute('aria-pressed', selections.has(normalized.value) ? 'true' : 'false');
+        if (selections.has(normalized.value)) {
+            chip.classList.add('is-selected');
+        }
+
+        chip.onclick = () => {
+            if (selections.has(normalized.value)) {
+                selections.delete(normalized.value);
+            } else {
+                selections.add(normalized.value);
+            }
+
+            const selected = selections.has(normalized.value);
+            chip.classList.toggle('is-selected', selected);
+            chip.setAttribute('aria-pressed', selected ? 'true' : 'false');
+        };
+        container.appendChild(chip);
+    }
+
+    function splitOnboardingList(value) {
+        return uniqueValues((value || '').split(/[,\n;]+/).map((item) => item.trim()).filter(Boolean));
+    }
+
+    function uniqueValues(values) {
+        return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
+    }
+
     async function checkOnboarding() {
         if (window.movieNightOnboardingChecked) return;
 
@@ -553,12 +713,25 @@
 
         try {
             const prefs = await ApiClient.getJSON(ApiClient.getUrl(`MovieNight/Users/${userId}/Preferences`));
-            if (!prefs || (!Object.keys(prefs.weightedGenres || {}).length && !prefs.eras?.length)) {
+            if (!hasOnboardingPreferences(prefs)) {
                 showOnboardingDialog();
             }
         } catch (err) {
             if (err.status === 404) showOnboardingDialog();
         }
+    }
+
+    function hasOnboardingPreferences(prefs) {
+        if (!prefs) return false;
+
+        return Boolean(
+            Object.keys(prefs.weightedGenres || {}).length ||
+            prefs.plotTypes?.length ||
+            prefs.eras?.length ||
+            prefs.castAndDirectors?.length ||
+            prefs.moods?.length ||
+            prefs.contentTypes?.length
+        );
     }
 
     async function completeOnboarding(payload) {

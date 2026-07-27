@@ -22,6 +22,14 @@ spec:
             bootstrapSecretName: movienight-cnpg-bootstrap
             storage:
               size: 2Gi
+            extraSpec:
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: 100m
+                  memory: 256Mi
 
         backend:
           image:
@@ -33,6 +41,13 @@ spec:
           envFrom:
             - secretRef:
                 name: movienight-backend
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
 
         gateway:
           enabled: true

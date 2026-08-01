@@ -62,6 +62,8 @@ spec:
 
         observability:
           enabled: true
+          victoriaMetrics:
+            url: "http://vmsingle-main.observability.svc.cluster.local:8429"
 
   destination:
     server: https://kubernetes.default.svc

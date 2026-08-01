@@ -10,8 +10,8 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/devitq/movienight-backend.git
-    targetRevision: feat/setup-observability-in-k8s
+    repoURL: https://git.itqdev.xyz/ITQ/movienight-backend.git
+    targetRevision: develop
     path: deploy/helm/movienight
     helm:
       valuesObject:

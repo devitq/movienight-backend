@@ -17,7 +17,7 @@ metadata:
 spec:
   selector:
     matchLabels:
-      {{- include "movienight.componentSelectorLabels" (dict "root" . "component" "backend") | nindent 4 }}
+      {{- include "movienight.componentSelectorLabels" (dict "root" . "component" "backend") | nindent 6 }}
 
   namespaceSelector:
     matchNames:

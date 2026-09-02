@@ -11,7 +11,7 @@ spec:
   project: default
   source:
     repoURL: https://git.itqdev.xyz/ITQ/movienight-backend.git
-    targetRevision: develop
+    targetRevision: main
     path: deploy/helm/movienight
     helm:
       valuesObject:

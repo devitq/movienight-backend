@@ -1,0 +1,80 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: movienight
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/compare-options: ServerSideDiff=true,IncludeMutationWebhook=true
+spec:
+  project: default
+  source:
+    repoURL: https://git.itqdev.xyz/ITQ/movienight-backend.git
+    targetRevision: develop
+    path: deploy/helm/movienight
+    helm:
+      valuesObject:
+        postgres:
+          cluster:
+            enabled: true
+            database: movienight
+            owner: movienight
+            bootstrapSecretName: movienight-cnpg-bootstrap
+            storage:
+              size: 2Gi
+            extraSpec:
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: 100m
+                  memory: 256Mi
+
+        backend:
+          image:
+            tag: pr-45
+            pullPolicy: Always
+          env:
+            - name: JELLYFIN_INTEGRATION_ENABLED
+              value: "true"
+          envFrom:
+            - secretRef:
+                name: movienight-backend
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: 500m
+              memory: 768Mi
+
+        gateway:
+          enabled: true
+          className: cilium
+          listenerHostname: movienight.itqdev.xyz
+          hostnames:
+            - movienight.itqdev.xyz
+          https:
+            enabled: true
+            secretName: movienight-tls
+
+        observability:
+          enabled: true
+          victoriaMetrics:
+            url: "http://vmsingle-main.observability.svc.cluster.local:8429"
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: movienight
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      enabled: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - ServerSideApply=true

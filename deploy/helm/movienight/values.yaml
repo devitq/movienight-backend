@@ -125,6 +125,8 @@ observability:
   metrics:
     applicationTag: movienight
     httpServerRequestsHistogram: "true"
+  scrape:
+    labels: {}
   vmagent:
     scrapeInterval: 10s
     backendJobName: movienight-backend
